@@ -1,0 +1,66 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-color: #6b90b2;
+    --secondary-color: #b0c7dd;
+    --tertiary-color: #d8e7f8;
+    --quaternary-color: #1b558e;
+    --quinary-color: #226bb4;
+    --senary-color: #2982da;
+    --septenary-color: #ccd64d;
+    --octonary-color: #5d6222;
+}
+
+
+
+html,
+body {
+    min-height: 100vh;
+    height: 100%;
+}
+
+.react-grid-layout {
+    padding: 0;
+}
+
+.item-top:hover{
+    background-color: transparent;
+}
+.item-top:active{
+    background-color: transparent;
+    cursor: grabbing;
+}
+
+.react-grid-item.item {
+    background-color: var(--mantine-color-body);
+    color: var(--mantine-color-text);
+    box-shadow: var(--mantine-shadow-md);
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.react-grid-item > .react-resizable-handle::after {
+    content: "";
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    width: 5px;
+    height: 5px;
+    border-right: 2px solid  rgba(var(--mantine-color-dark-2), 1);
+    border-bottom: 2px solid  rgba(var(--mantine-color-text), 1);
+  }
+
+.page-body {
+    left: 220px;
+    position: fixed;
+}
+  /* Hide (left-hand) Navbar as page narrows */
+@media only screen and (max-width: 1200px) {
+    .page-body {
+        left: 0;
+    }
+  }

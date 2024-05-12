@@ -1,0 +1,37 @@
+{
+    "dispersion": {
+        "title": "Dispersion Graph",
+        "title_font_size": 20,
+        "generel_font_size": 16,
+        "color_marker": "#018BCF",
+        "selected_color": 9,
+        "x_value": "Risk",
+        "y_value": "CAGR",
+        "RI_line_color": 0,
+        "RI_line_type": "dotted",
+        "reference_series": "RI"
+    },
+    "performance": {
+        "title": "Performance Graph",
+        "title_font_size": 20,
+        "generel_font_size": 16,
+        "date_format": "%d/%m/%Y",
+        "selected_series_color": "#018BCF",
+        "reference_series": "RI",
+        "reference_series_name": "Reference Index (S&P500)",
+        "reference_color": "#004c94"
+    },
+    "table": {
+        "header": [
+            "Parameter",
+            "Reference Index",
+            "Selected Series"
+        ],
+        "inception_text": "Month since inception"
+    },
+    "composition": {
+        "title": "Composition",
+        "title_font_size": 20,
+        "generel_font_size": 16
+    }
+}

@@ -1,0 +1,9 @@
+<h3>Hi {{user_name}},</h3>
+<p>
+    Emails get lost from time to time, no issue.
+    Here is your new link to
+    <a href={{ url_for('auth_bp.verify_email', token=token, _external=True) }}>verify your email</a>.
+    <br>
+
+</p>
+<p>If you did not request an email, you may ignore this message.</p>

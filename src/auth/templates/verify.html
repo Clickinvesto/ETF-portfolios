@@ -1,0 +1,9 @@
+<h3>Hi {{user_name}},</h3>
+<p>
+    Thank you for signing up to our service.
+    In order to use our services, please click the link to
+    <a href={{ url_for('auth_bp.verify_email', token=token, _external=True) }}>verify your email</a>.
+    <br>
+
+</p>
+<p>If you did not create an account, you may ignore this message.</p>
