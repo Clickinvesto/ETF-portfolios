@@ -4,6 +4,7 @@ from dash import html, callback, Input, State, Output, ctx, no_update, callback_
 from dash.exceptions import PreventUpdate
 from dash_iconify import DashIconify
 from src.Dash.services.database import OpenPay
+from src.Dash.utils.functions import  get_countries
 from flask import session
 
 api = OpenPay()
@@ -83,14 +84,16 @@ sub_modal = dmc.Modal(
                     dmc.TextInput(
                         id="city", placeholder="City", style={"width": "200"}
                     ),
-                    dmc.TextInput(
+                    dmc.Select(
+                        placeholder="Select your country",
                         id="country_code",
-                        placeholder="Your Country",
-                        style={"width": "200"},
+                        searchable=True,
+                        data=get_countries(),
+                        style={"width": 200},
                     ),
                     dmc.TextInput(
                         id="postal_code",
-                        placeholder="Your Country",
+                        placeholder="Your postal code",
                         style={"width": "200"},
                     ),
                     dmc.TextInput(
