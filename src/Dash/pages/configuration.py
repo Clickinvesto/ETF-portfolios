@@ -61,7 +61,6 @@ def full_layout(customer_id, subscription, plan, error_message):
             style={"padding": "20px"},
         )
     else:
-        # subscription_card_ids = [sub["card"]["id"] for sub in subscription_data["data"]]
         subscription_card_ids = [sub["card"]["id"] for sub in subscription_data["data"] if sub["status"] == "active"]
         return html.Div(
             [
@@ -78,7 +77,8 @@ def full_layout(customer_id, subscription, plan, error_message):
                 dmc.Space(h=10),
                 dmc.Container(
                     [
-                        dmc.Text(f"Plan Name: {plan['name']}" if plan else "No active plan", style={"fontWeight": 700}),
+                        dmc.Text(f"Plan Name: {plan['name']}" if plan else "No active plan", id="subscription_plan",
+                                 style={"fontWeight": 700}),
                         dmc.Text(f"Price: $ {plan['amount']}" if plan else "", id="subscription_price",
                                  style={"fontWeight": 700}),
                     ],
@@ -170,7 +170,8 @@ def full_layout(customer_id, subscription, plan, error_message):
                 dmc.Text("", id="account_deleted_message", fw=200, c="red"),
                 # Add a hidden dcc.Location, div to trigger for redirection
                 dcc.Location(id="redirect", refresh=True),
-                html.Div(id="redirect-trigger", style={"display": "none"})
+                html.Div(id="redirect-trigger", style={"display": "none"}),
+                dcc.Store(id="store-account-data", storage_type="memory")
             ],
             style={
                 "padding": "20px",
@@ -181,7 +182,6 @@ def full_layout(customer_id, subscription, plan, error_message):
 def fetch_subscription_and_plan(openpay_id):
     try:
         customer = openpay.Customer.retrieve(openpay_id)
-
         global subscription_data
         subscription_data = customer.subscriptions.all()
 
@@ -204,16 +204,16 @@ def fetch_subscription_and_plan(openpay_id):
         return None, None, None, {"message": None, "error_message": "Error fetching subscription details: {}".format(e)}
 
 
-# Define a function to fetch user's credit card information from OpenPay
 def fetch_credit_cards(customer):
     cards = customer.cards.all()
     return cards["data"]
 
 
 @callback(
-    Output("credit_cards_display", "children"),
+    Output("credit_cards_display", "children", allow_duplicate=True),
     Output("credit_card_deleted_message", "children"),
     Input({"type": "delete_credit_card", "card_id": ALL, "customer_id": ALL}, "n_clicks"),
+    prevent_initial_call=True
 )
 def delete_credit_card_callback(n_clicks_list):
     if not any(n_clicks_list):
@@ -235,8 +235,6 @@ def delete_credit_card_callback(n_clicks_list):
                                      sub["status"] == "active"]
         else:
             subscription_card_ids = []
-        # Parse card IDs from subscription data
-        # subscription_card_ids = [sub["card"]["id"] for sub in subscription_data["data"]]
         if cards_data:
             updated_card_displays = [
                 dmc.Paper(
@@ -331,57 +329,75 @@ def delete_user_callback(n_clicks):
         openpay_id = user_session.get("openpay_id", "")
         if openpay_id is None or openpay_id == "":
             return "No OpenPay ID found for the user.", no_update
-        else:
-            if delete_user(email, openpay_id):
+        # Delete OpenPay account first
+        if delete_account_from_openpay(openpay_id):
+            if delete_user(email, openpay_id, True, True, True):
                 logout_user()
                 flash("Account deleted successfully.", "warning")
                 return "Account deleted successfully.", current_app.config["URL_SIGNUP"]
             else:
-                return "Failed to delete account. Please try again later.", no_update
+                return "Failed to delete user data from the database. Please try again later.", no_update
+        else:
+            return "Failed to delete OpenPay account. Please try again later.", no_update
     raise PreventUpdate
 
 
-def delete_user(email, openpay_id):
+def delete_user(email=None, openpay_id=None, delete_user=False, delete_cards=False, delete_purchases=False):
+    if not any([delete_user, delete_cards, delete_purchases]):
+        print("No deletion action specified.")
+        return False
     try:
         conn = sqlite3.connect(current_app.config["DATABASE_PATH"])
         cursor = conn.cursor()
 
-        # Remove user from the users table
-        delete_user_query = """DELETE FROM users WHERE email = ?"""
-        cursor.execute(delete_user_query, (email,))
+        if delete_user and email:
+            # Remove user from the users table
+            delete_user_query = """DELETE FROM users WHERE email = ?"""
+            cursor.execute(delete_user_query, (email,))
+            print(f"User {email} deleted.")
 
-        # Remove subscription for that specific customer
-        delete_cards_query = """DELETE FROM cards WHERE customer_id = ?"""
-        cursor.execute(delete_cards_query, (openpay_id,))
+        if delete_cards and openpay_id:
+            # Remove cards for that specific customer
+            delete_cards_query = """DELETE FROM cards WHERE customer_id = ?"""
+            cursor.execute(delete_cards_query, (openpay_id,))
+            print(f"Cards for customer {openpay_id} deleted.")
 
-        # Remove purchases for that specific customer
-        delete_purchases_query = """DELETE FROM purchases WHERE customer_id = ?"""
-        cursor.execute(delete_purchases_query, (openpay_id,))
+        if delete_purchases and openpay_id:
+            # Remove purchases for that specific customer
+            delete_purchases_query = """DELETE FROM purchases WHERE customer_id = ?"""
+            cursor.execute(delete_purchases_query, (openpay_id,))
+            print(f"Purchases for customer {openpay_id} deleted.")
 
         conn.commit()
         conn.close()
         return True
     except Exception as e:
-        print("Error deleting user:", e)
+        print("Error deleting user details:", e)
         return False
 
 
 @callback(
     Output("account_deleted_message", "children", allow_duplicate=True),
+    Output("redirect-trigger", "children"),
+    Output("store-account-data", "data"),
     Input("delete_openpay_account", "n_clicks"),
     prevent_initial_call=True
 )
 def delete_openpay_account_callback(n_clicks):
     if n_clicks:
         user_session = session["user"]
+        email = user_session.get("email", "")
         openpay_id = user_session.get("openpay_id", "")
         if openpay_id:
             if delete_account_from_openpay(openpay_id):
-                return "Openpay account deleted successfully."
+                delete_user(email, openpay_id, False, True, True)
+                return "Openpay account and associated data deleted successfully.", dcc.Location(
+                    pathname=current_app.config["URL_CONFIGURATION"],
+                    id="redirect"), {"refresh": True}
             else:
-                return "Failed to delete OpenPay account. Please try again later."
+                return "Failed to delete OpenPay account. Please try again later.", no_update, no_update
         else:
-            return "No OpenPay ID found for the user."
+            return "No OpenPay ID found for the user.", no_update, no_update
     raise PreventUpdate
 
 
@@ -390,7 +406,8 @@ def delete_account_from_openpay(customer_id):
         customer = openpay.Customer.retrieve(customer_id)
         subscriptions = customer.subscriptions.all()
         for subscription in subscriptions["data"]:
-            subscription.delete()
+            if subscription["status"] == "active":
+                subscription.delete()
         cards = customer.cards.all()
         for card in cards["data"]:
             card.delete()
@@ -401,3 +418,76 @@ def delete_account_from_openpay(customer_id):
     except openpay.error.OpenpayError as e:
         print("Error deleting account from OpenPay:", e)
         return False
+
+
+@callback(
+    Output("credit_cards_display", "children", allow_duplicate=True),
+    Output("subscription_plan", "children"),
+    Output("subscription_price", "children"),
+    Output("account_deleted_message", "children", allow_duplicate=True),
+    Input("store-account-data", "data"),
+    prevent_initial_call=True
+)
+def refresh_data(store_data):
+    if store_data and store_data.get("refresh"):
+        openpay_id = session["user"].get("openpay_id", "")
+        customer, subscription, plan, message = fetch_subscription_and_plan(openpay_id)
+
+        if plan:
+            plan_name = f"Plan Name: {plan['name']}"
+            plan_price = f"Price: $ {plan['amount']}"
+        else:
+            plan_name = "No subscription available"
+            plan_price = ""
+
+        if cards_data:
+            subscription_card_ids = [sub["card"]["id"] for sub in subscription_data["data"] if
+                                     sub["status"] == "active"]
+            card_displays = [
+                dmc.Paper(
+                    [
+                        dmc.ActionIcon(
+                            DashIconify(
+                                icon="radix-icons:minus-circled" if card[
+                                                                        "id"] not in subscription_card_ids else "radix-icons:check-circled",
+                                width=20
+                            ),
+                            id={"type": "delete_credit_card", "card_id": card["id"],
+                                "customer_id": customer["id"]} if
+                            card["id"] not in subscription_card_ids else {"type": "used_credit_card"},
+                            size="lg",
+                            variant="filled",
+                            style={
+                                "background": "transparent",
+                                "color": "red" if card["id"] not in subscription_card_ids else "yellow",
+                                "position": "absolute",
+                                "top": "150px",
+                                "right": "0px",
+                                "border": "none",
+                                "cursor": "pointer" if card["id"] not in subscription_card_ids else "default",
+                                "zIndex": 999,
+                            },
+                        ),
+                        dcs.DashCreditCards(
+                            number=card["card_number"],
+                            name=card["holder_name"],
+                            expiry=f"{card['expiration_month']}/{card['expiration_year']}",
+                            issuer=card["brand"],
+                        ),
+                    ],
+                    style={
+                        "position": "relative",
+                        "padding": "0px",
+                        "borderRadius": "15px",
+                    },
+                )
+                for card in cards_data
+            ]
+            return card_displays, plan_name.plan_price, "Openpay account and associated data deleted successfully."
+        else:
+            return [html.Div(
+                "No cards available")], \
+                plan_name, \
+                plan_price, \
+                "Openpay account and associated data deleted successfully."
+    raise PreventUpdate
