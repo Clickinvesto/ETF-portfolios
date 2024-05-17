@@ -1,5 +1,7 @@
 import dash
+import os
 import json
+import boto3
 import datetime
 import openpay
 from pathlib import Path
@@ -19,6 +21,7 @@ from flask_admin.contrib.fileadmin import FileAdmin
 from flask_login import LoginManager, current_user
 from flask_sqlalchemy import SQLAlchemy
 from flask_redmail import RedMail
+from flask_migrate import Migrate
 
 path = Path(__file__).resolve().parent / "Dash"
 
@@ -33,6 +36,7 @@ admin_manager = Admin(template_mode="bootstrap4", index_view=AdminIndexView())
 db = SQLAlchemy()
 login_manager = LoginManager()
 mail = RedMail()
+migrate = Migrate()
 
 
 def create_app():
@@ -59,10 +63,19 @@ def create_app():
     #    }
     db.init_app(app)
     app.db = db
+    migrate.init_app(app, db)
     admin_manager.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = "/login"
     mail.init_app(app)
+
+    s3_client = boto3.resource(
+        service_name="s3",
+        region_name=os.environ.get("BUCKETEER_AWS_REGION"),
+        aws_access_key_id=os.environ.get("BUCKETEER_AWS_ACCESS_KEY_ID"),
+        aws_secret_access_key=os.environ.get("BUCKETEER_AWS_SECRET_ACCESS_KEY"),
+    )
+    app.config["S3_CLIENT"] = s3_client
 
     @app.before_request
     def check_login():

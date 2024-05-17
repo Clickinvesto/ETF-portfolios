@@ -17,9 +17,10 @@ class Config:
     NO_ADMIN_EMAIL = "no_admin@test.com"
     NO_ADMIN_PASSWORD = "test"
 
+    DATABASE_URL = environ.get("DATABASE_URL")
     # Database
     DATABASE_PATH = f"{database_path}"
-    SQLALCHEMY_DATABASE_URI = environ.get("DATABASE_URI", "sqlite:///database.db")
+    SQLALCHEMY_DATABASE_URI = environ.get("DATABASE_URL", "sqlite:///database.db")
     SQLALCHEMY_ECHO = False
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
@@ -36,6 +37,11 @@ class Config:
     OPENPAY_VERIFY_SSL_CERTS = False
     OPENPAY_MERCHANT_ID = environ.get("OPENPAY_MERCHANT_ID")
     OPENPAY_COUNTRY = environ.get("OPENPAY_COUNTRY")
+
+    S3_BUCKET = environ.get("BUCKETEER_BUCKET_NAME")
+    AWS_KEY_ID = environ.get("BUCKETEER_AWS_ACCESS_KEY_ID")
+    AWS_SECRET_KEY = environ.get("BUCKETEER_AWS_SECRET_ACCESS_KEY")
+    AWS_REGION = environ.get("BUCKETEER_AWS_REGION")
 
 
 class URL:

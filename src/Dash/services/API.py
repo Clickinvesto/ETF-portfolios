@@ -7,13 +7,14 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 from itertools import combinations, product
+from .mixins.S3mixin import S3Mixin
 
 # Python is doing Bankers rounding by default. setting the rounding context
 context = decimal.getcontext()
 context.rounding = decimal.ROUND_HALF_UP
 
 
-class API:
+class API(S3Mixin):
 
     def __init__(self) -> None:
         self.working_directory = Path.cwd()
@@ -41,7 +42,7 @@ class API:
 
     def load_dispersion_data(self):
         df = pl.read_csv(
-            self.dispersion_path,
+            self.get_data_file("data/" + self.dispersion_file),
             separator=",",
             new_columns=["Series", "Combination", "Weights", "CAGR", "Risk"],
         )
@@ -66,7 +67,12 @@ class API:
         reference_series = configuration.get("reference_series", "RI")
 
         combination, weights = self.get_series_combination_weights(series)
-        df = pd.read_csv(self.series_path, sep=";", header=0, decimal=".")
+        df = pd.read_csv(
+            self.get_data_file("data/" + self.series_file),
+            sep=";",
+            header=0,
+            decimal=".",
+        )
         df["Date (month)"] = pd.to_datetime(df["Date (month)"], format="%m/%d/%Y")
         df.set_index("Date (month)", inplace=True)
 
@@ -98,7 +104,11 @@ class API:
 
     def get_series_data(self, series=False, polar=False):
         if polar:
-            df = pl.read_csv(self.series_path, has_header=True, separator=";")
+            df = pl.read_csv(
+                self.get_data_file("data/" + self.series_file),
+                has_header=True,
+                separator=";",
+            )
             columns_to_cast = df.columns[1:]
             df = df.with_columns(
                 [
@@ -107,7 +117,12 @@ class API:
                 ]
             )
             return df
-        df = pd.read_csv(self.series_path, sep=";", header=0, decimal=".")
+        df = pd.read_csv(
+            self.get_data_file("data/" + self.series_file),
+            sep=";",
+            header=0,
+            decimal=".",
+        )
         df["Date (month)"] = pd.to_datetime(df["Date (month)"], format="%m/%d/%Y")
         df.set_index("Date (month)", inplace=True)
         return df
