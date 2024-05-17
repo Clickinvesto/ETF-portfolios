@@ -13,6 +13,7 @@ from dash import (
     Patch,
 )
 from flask import current_app
+import logging
 from flask_login import current_user
 from dash.exceptions import PreventUpdate
 
@@ -112,17 +113,17 @@ def display_click_data(selectedData):
     selection = selectedData.get("points")[0]
     selected_series = selection.get("text")
 
-    print("get series")
+    logging.info("Get the series")
     normalised_data, reference_series, number_month = api.get_weighted_series(
         selected_series
     )
 
-    print("get Carg")
+    logging.info("Calc cagr")
     cagr, risk = api.calc_CAGR(normalised_data, number_month)
-    print("plot")
+    logging.info("Get make plot")
     figure = plotter.make_performance_plot(normalised_data, selected_series)
 
-    print("finished")
+    logging.info("Finished")
     if figure == "error":
         message = dmc.Notification(
             title="There was an error",
