@@ -4,6 +4,7 @@ import sys
 import boto3
 import datetime
 import openpay
+import logging
 from pathlib import Path
 from flask import (
     Flask,
@@ -58,6 +59,18 @@ def create_app():
     app.config.from_object("config.Config")
     app.config.from_object("config.URL")
     # Initialize Plugins and register them with the app
+    # Set up logging
+
+    configure_logger(
+        env=os.environ.get("ENVIRONMENT", "local"),
+        log_path=log_path,
+        name="default",
+    )
+
+    if not app.debug:
+        gunicorn_logger = logging.getLogger("gunicorn.error")
+        app.logger.handlers = gunicorn_logger.handlers
+        app.logger.setLevel(gunicorn_logger.level)
 
     engine_config = {
         "pool_size": 5,
@@ -145,11 +158,7 @@ def create_app():
         openpay.verify_ssl_certs = current_app.config["OPENPAY_VERIFY_SSL_CERTS"]
         openpay.merchant_id = current_app.config["OPENPAY_MERCHANT_ID"]
         openpay.country = current_app.config["OPENPAY_COUNTRY"]
-        configure_logger(
-            env=os.environ.get("ENVIRONMENT", "local"),
-            log_path=log_path,
-            name="default",
-        )
+
         current_app.Openpay = openpay
 
         # Integrate the dash application

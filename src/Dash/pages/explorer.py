@@ -93,8 +93,11 @@ def full_layout():
 
 @callback(Output("dispersion_plot", "figure"), Input("url", "pathname"))
 def init_graph(path):
+    logging.error("Get the series")
     data = api.get_dispersion_data()
+    logging.error("make graph")
     figure = plotter.make_dispersion_plot(data)
+    logging.error("finisehd")
     return figure
 
 
@@ -113,20 +116,16 @@ def display_click_data(selectedData):
     selection = selectedData.get("points")[0]
     selected_series = selection.get("text")
     logging.error("Get the series")
-    current_app.logger.logging.error("Get the series")
     normalised_data, reference_series, number_month = api.get_weighted_series(
         selected_series
     )
 
     logging.error("Calc cagr")
-    current_app.logger.logging.error("Calc cagr")
     cagr, risk = api.calc_CAGR(normalised_data, number_month)
     logging.error("Get make plot")
-    current_app.logger.logging.error("Get make plot")
     figure = plotter.make_performance_plot(normalised_data, selected_series)
 
     logging.error("Finished")
-    current_app.logger.logging.error("Finished")
     if figure == "error":
         message = dmc.Notification(
             title="There was an error",
@@ -142,5 +141,4 @@ def display_click_data(selectedData):
         cagr, risk, number_month, reference_series, selected_series
     )
     logging.error("Finished2")
-    current_app.logger.error("Finished2")
     return figure, table, no_update, selected_series
