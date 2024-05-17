@@ -24,14 +24,11 @@ def format_date(input_date, input_format="%Y-%m-%d", return_format="%Y-%m-%d %H:
 
 class S3Mixin:
     def get_data_file(self, path):
-        import logging
-
         data_file = (
             current_app.config["S3_CLIENT"]
             .Object(current_app.config["S3_BUCKET"], path)
             .get()
         )
-        logging.error("Got file")
         return data_file["Body"]
 
     def upload_files_to_s3(self, file_paths, folder_name):
