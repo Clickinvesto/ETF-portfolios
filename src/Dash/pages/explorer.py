@@ -112,13 +112,17 @@ def display_click_data(selectedData):
     selection = selectedData.get("points")[0]
     selected_series = selection.get("text")
 
+    print("get series")
     normalised_data, reference_series, number_month = api.get_weighted_series(
         selected_series
     )
 
+    print("get Carg")
     cagr, risk = api.calc_CAGR(normalised_data, number_month)
+    print("plot")
     figure = plotter.make_performance_plot(normalised_data, selected_series)
 
+    print("finished")
     if figure == "error":
         message = dmc.Notification(
             title="There was an error",
