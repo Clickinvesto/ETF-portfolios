@@ -1,1 +1,1 @@
-web: gunicorn wsgi:app --preload --timeout 180
+web: gunicorn wsgi:app --preload --timeout 180 --workers=4
