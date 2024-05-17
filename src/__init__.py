@@ -22,6 +22,7 @@ from flask_login import LoginManager, current_user
 from flask_sqlalchemy import SQLAlchemy
 from flask_redmail import RedMail
 from flask_migrate import Migrate
+from src.admin.s3FileAdmin import S3FileAdmin
 
 path = Path(__file__).resolve().parent / "Dash"
 
@@ -147,6 +148,13 @@ def create_app():
         )
         admin_manager.add_view(
             CustomFileAdmin(path / "config", name="Config Files", endpoint="config")
+        )
+        admin_manager.add_view(
+            S3FileAdmin(
+                s3client=s3_client,
+                bucket_name=current_app.config["S3_BUCKET"],
+                name="data",
+            )
         )
 
         # Register Blueprints, which are layouts
