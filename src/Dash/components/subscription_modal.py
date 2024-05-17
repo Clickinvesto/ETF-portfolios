@@ -1,19 +1,32 @@
 import dash_mantine_components as dmc
+import uuid
 from dash_credit_cards import DashCreditCards, DashParallaxTilt, DashCreditCardInput
-from dash import html, callback, Input, State, Output, ctx, no_update, callback_context
+from dash import (
+    html,
+    callback,
+    Input,
+    State,
+    Output,
+    ctx,
+    no_update,
+    callback_context,
+    clientside_callback,
+)
 from dash.exceptions import PreventUpdate
 from dash_iconify import DashIconify
 from src.Dash.services.database import OpenPay
-from src.Dash.utils.functions import  get_countries
+from src.Dash.utils.functions import get_countries
 from flask import session
+from src.Dash.services.NotificationProvider import NotificationProvider
 
+notify = NotificationProvider()
 api = OpenPay()
 
 
 sub_modal = dmc.Modal(
     id="subscription_modal",
     centered=True,
-    zIndex=10000,
+    zIndex=99,
     size="55%",
     children=dmc.Container(
         [
@@ -141,9 +154,10 @@ sub_modal = dmc.Modal(
     Input("credit_card_input", "cardNumber"),
     Input("credit_card_input", "expiry"),
     Input("credit_card_input", "cvc"),
+    State("dash_websocket", "socketId"),
     prevent_initial_call=True,
 )
-def update_credit_card(first_name, last_name, card_input, expiry, cvc):
+def update_credit_card(first_name, last_name, card_input, expiry, cvc, socketid):
     if not any([card_input, expiry, cvc, first_name, last_name]):
         return no_update
     # Remove spaces and slash from expiry
@@ -198,7 +212,6 @@ def update_credit_card(first_name, last_name, card_input, expiry, cvc):
     Output("line2", "value"),
     Output("line3", "value"),
     Output("state", "value"),
-    Output("notify_container", "children"),
     Input("make_subscription", "n_clicks"),
     Input("clear", "n_clicks"),
     State("first_name_form", "value"),
@@ -213,6 +226,7 @@ def update_credit_card(first_name, last_name, card_input, expiry, cvc):
     State("line2", "value"),
     State("line3", "value"),
     State("state", "value"),
+    State("dash_websocket", "socketId"),
     prevent_initial_call=True,
 )
 def update_output(
@@ -230,6 +244,7 @@ def update_output(
     line2,
     line3,
     state,
+    socket_id,
 ):
     ctx = callback_context
     if not ctx.triggered:
@@ -250,16 +265,12 @@ def update_output(
         )
 
         if error_message is not None:
-            message = dmc.Notification(
-                id="my-notification",
+            notify.send_socket(
+                to=socket_id,
+                type="error",
                 title="Wrong input",
                 message="Please check your input",
-                color="red",
-                action="show",
-                autoClose=True,
-                icon=DashIconify(icon="material-symbols-light:error-outline"),
             )
-            # print("Error (Form validation): ", error_message)
             return (
                 no_update,
                 error_message,
@@ -281,11 +292,18 @@ def update_output(
                 no_update,
                 no_update,
                 no_update,
-                message,
             )
 
         user_session = session["user"]
         email = user_session.get("email", "")
+        notification_id = uuid.uuid4().hex
+        notify.send_socket(
+            to=socket_id,
+            type="start_process",
+            title="Creating subscription",
+            message="We check the credit card and add the subscription. Please wait a moment.",
+            id=notification_id,
+        )
         customer, subscription, api_error = api.create_customer_subscription(
             first_name,
             last_name,
@@ -305,14 +323,12 @@ def update_output(
 
         # an error occur while making an api calls
         if api_error is not None:
-            message = dmc.Notification(
-                id="my-notification",
+            notify.send_socket(
+                to=socket_id,
+                type="error_process",
                 title="Something wrong at the API",
-                message="We could not process your request. Pleas try again later",
-                color="red",
-                action="show",
-                autoClose=True,
-                icon=DashIconify(icon="material-symbols-light:error-outline"),
+                message="We could not process your request. Check the credit card and try again.",
+                id=notification_id,
             )
             return (
                 no_update,
@@ -335,18 +351,15 @@ def update_output(
                 no_update,
                 no_update,
                 no_update,
-                message,
             )
         # All api calls are successful
         if customer is not None and subscription is not None:
-            message = dmc.Notification(
-                id="my-notification",
+            notify.send_socket(
+                to=socket_id,
+                type="success_process",
                 title="Success",
-                message="Thank you for subscribing to our service!",
-                color="green",
-                action="show",
-                autoClose=True,
-                icon=DashIconify(icon="material-symbols-light:error-outline"),
+                message="hank you for subscribing to our service!",
+                id=notification_id,
             )
             return (
                 False,
@@ -369,7 +382,6 @@ def update_output(
                 "",
                 "",
                 "",
-                message,
             )
         elif button_id == "clear":
             return (
@@ -393,8 +405,18 @@ def update_output(
                 "",
                 "",
                 "",
-                no_update,
             )
+
+
+clientside_callback(
+    """(notification) => {
+        if (!notification) return dash_clientside.no_update
+        return notification
+    }""",
+    Output("notify_container", "children", allow_duplicate=True),
+    Input("dash_websocket", "data-notification"),
+    prevent_initial_call=True,
+)
 
 
 def validate_input(

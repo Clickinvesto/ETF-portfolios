@@ -6,6 +6,7 @@ from src.Dash.components.subscription_modal import sub_modal
 from dash_bootstrap_templates import load_figure_template
 from flask import current_app, session, redirect, url_for
 from dash.exceptions import PreventUpdate
+from dash_socketio import DashSocketIO
 
 # loads the "darkly" template and sets it as the default
 
@@ -119,6 +120,10 @@ def layout():
                 dcc.Location(id="url", refresh=True),
                 dcc.Store(id="series_store", storage_type="session"),
                 html.Div(id="notify_container"),
+                DashSocketIO(
+                    id="dash_websocket",
+                    eventNames=["notification"],
+                ),
                 make_header(),
                 make_navbar(),
                 sub_modal,
@@ -131,6 +136,7 @@ def layout():
             ],
             containerWidth="25%",
             autoClose=5000,
+            zIndex=10000,
             position="top-center",
         ),
     )

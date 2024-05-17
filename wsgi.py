@@ -1,5 +1,5 @@
 from src import create_app
-
+from flask_socketio import SocketIO
 import os
 from dotenv import find_dotenv, load_dotenv
 
@@ -11,4 +11,5 @@ load_dotenv(dotenv_path)
 app = create_app()
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port="5002")
+    socketio = SocketIO(app)
+    socketio.run(app, debug=True, host="0.0.0.0", port="5003")

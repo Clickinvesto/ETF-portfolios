@@ -74,20 +74,23 @@ def full_layout(customer_id, subscription, plan, error_message):
             [
                 dmc.Title("Customer Configuration", order=2),
                 dmc.Space(h=10),
-                dmc.Text(
-                    "Subscription Plan:",
-                    size="md",
-                    style={
-                        "textDecoration": "underline",
-                        "marginLeft": 20,
-                        "fontWeight": 500,
-                    },
-                ),
-                dmc.Space(h=10),
-                dmc.Container(
+                dmc.Paper(
                     [
                         dmc.Text(
-                            f"Plan Name: {plan['name']}" if plan else "No active plan",
+                            "Subscription Plan:",
+                            size="md",
+                            style={
+                                "textDecoration": "underline",
+                                "fontWeight": 500,
+                            },
+                        ),
+                        dmc.Space(h=10),
+                        dmc.Text(
+                            (
+                                f"Plan Name: {plan['name']}"
+                                if plan
+                                else "No active plan"
+                            ),
                             id="subscription_plan",
                             style={"fontWeight": 700},
                         ),
@@ -96,100 +99,98 @@ def full_layout(customer_id, subscription, plan, error_message):
                             id="subscription_price",
                             style={"fontWeight": 700},
                         ),
-                    ],
-                    style={
-                        "display": "flex",
-                        "justifyContent": "space-between",
-                        "border": "1px solid purple",
-                        "padding": 20,
-                        "marginLeft": 20,
-                    },
+                    ]
                 ),
                 dmc.Space(h=20),
-                dmc.Text(
-                    "Credit Cards:",
-                    size="md",
-                    style={
-                        "textDecoration": "underline",
-                        "marginLeft": 20,
-                        "fontWeight": 500,
-                    },
-                ),
-                dmc.Space(h=10),
-                html.Div(
-                    id="credit_cards_display",
-                    children=(
-                        [
-                            dmc.Paper(
+                dmc.Paper(
+                    [
+                        dmc.Text(
+                            "Credit Cards:",
+                            size="md",
+                            style={
+                                "textDecoration": "underline",
+                                "marginLeft": 20,
+                                "fontWeight": 500,
+                            },
+                        ),
+                        dmc.Space(h=10),
+                        html.Div(
+                            id="credit_cards_display",
+                            children=(
                                 [
-                                    dmc.ActionIcon(
-                                        DashIconify(
-                                            icon=(
-                                                "radix-icons:minus-circled"
-                                                if card["id"]
-                                                not in subscription_card_ids
-                                                else "radix-icons:check-circled"
+                                    dmc.Paper(
+                                        [
+                                            dmc.ActionIcon(
+                                                DashIconify(
+                                                    icon=(
+                                                        "radix-icons:minus-circled"
+                                                        if card["id"]
+                                                        not in subscription_card_ids
+                                                        else "radix-icons:check-circled"
+                                                    ),
+                                                    width=20,
+                                                ),
+                                                id=(
+                                                    {
+                                                        "type": "delete_credit_card",
+                                                        "card_id": card["id"],
+                                                        "customer_id": customer_id,
+                                                    }
+                                                    if card["id"]
+                                                    not in subscription_card_ids
+                                                    else {"type": "used_credit_card"}
+                                                ),
+                                                size="lg",
+                                                variant="filled",
+                                                style={
+                                                    "background": "transparent",
+                                                    "color": (
+                                                        "red"
+                                                        if card["id"]
+                                                        not in subscription_card_ids
+                                                        else "yellow"
+                                                    ),
+                                                    "position": "absolute",
+                                                    "top": "150px",
+                                                    "right": "0px",
+                                                    "border": "none",
+                                                    "cursor": (
+                                                        "pointer"
+                                                        if card["id"]
+                                                        not in subscription_card_ids
+                                                        else "default"
+                                                    ),
+                                                    "zIndex": 999,
+                                                },
                                             ),
-                                            width=20,
-                                        ),
-                                        id=(
-                                            {
-                                                "type": "delete_credit_card",
-                                                "card_id": card["id"],
-                                                "customer_id": customer_id,
-                                            }
-                                            if card["id"] not in subscription_card_ids
-                                            else {"type": "used_credit_card"}
-                                        ),
-                                        size="lg",
-                                        variant="filled",
+                                            dcs.DashCreditCards(
+                                                number=card["card_number"],
+                                                name=card["holder_name"],
+                                                expiry=f"{card['expiration_month']}/{card['expiration_year']}",
+                                                issuer=card["brand"],
+                                            ),
+                                        ],
                                         style={
-                                            "background": "transparent",
-                                            "color": (
-                                                "red"
-                                                if card["id"]
-                                                not in subscription_card_ids
-                                                else "yellow"
-                                            ),
-                                            "position": "absolute",
-                                            "top": "150px",
-                                            "right": "0px",
-                                            "border": "none",
-                                            "cursor": (
-                                                "pointer"
-                                                if card["id"]
-                                                not in subscription_card_ids
-                                                else "default"
-                                            ),
-                                            "zIndex": 999,
+                                            "position": "relative",
+                                            "padding": "0px",
+                                            "borderRadius": "15px",
                                         },
-                                    ),
-                                    dcs.DashCreditCards(
-                                        number=card["card_number"],
-                                        name=card["holder_name"],
-                                        expiry=f"{card['expiration_month']}/{card['expiration_year']}",
-                                        issuer=card["brand"],
-                                    ),
-                                ],
-                                style={
-                                    "position": "relative",
-                                    "padding": "0px",
-                                    "borderRadius": "15px",
-                                },
-                            )
-                            for card in api.cards_data
-                        ]
-                        or [html.Div("No cards available")]
-                    ),
-                    style={
-                        "display": "flex",
-                        "flexWrap": "wrap",
-                        "justifyContent": "space-between",
-                        "position": "relative",
-                        "gap": "10px",
-                        "margin": "10px",
-                        "padding": "12px",
-                    },
+                                    )
+                                    for card in api.cards_data
+                                ]
+                                or [html.Div("No cards available")]
+                            ),
+                            style={
+                                "display": "flex",
+                                "flexWrap": "wrap",
+                                "justifyContent": "space-between",
+                                "position": "relative",
+                                "gap": "10px",
+                                "margin": "10px",
+                                "padding": "12px",
+                            },
+                        ),
+                    ]
                 ),
                 dmc.Text("", id="credit_card_deleted_message", fw=200, c="red"),
                 dmc.Space(h=10),
