@@ -2,7 +2,7 @@ import dash_mantine_components as dmc
 from dash import callback, Input, Output, html, State, ctx, ALL
 from dash.exceptions import PreventUpdate
 from flask import current_app, session
-
+import copy
 from src.Dash.utils.functions import get_icon
 
 tabs = [
@@ -21,28 +21,29 @@ tabs = [
         current_app.config["URL_DASH"][:-1] + current_app.config["URL_PRICING"],
         "streamline:subscription-cashflow",
     ],
-    [
-        "Combination Calculation",
-        current_app.config["URL_DASH"][:-1] + current_app.config["URL_SETTINGS"],
-        "material-symbols:settings",
-    ],
-    [
-        "Configuration",
-        current_app.config["URL_DASH"][:-1] + current_app.config["URL_CONFIGURATION"],
-        "material-symbols:settings",
-    ],
-    [
-        "Configuration",
-        current_app.config["URL_DASH"][:-1] + current_app.config["URL_CONFIGURATION"],
-        "material-symbols:settings",
-    ],
 ]
 
 
 def make_nav_links(is_admin, user):
-    temp = tabs
-    if not is_admin:
-        temp = tabs[:-1]
+    temp = copy.deepcopy(tabs)
+    if user:
+        temp.append(
+            [
+                "Configuration",
+                current_app.config["URL_DASH"][:-1]
+                + current_app.config["URL_CONFIGURATION"],
+                "material-symbols:settings",
+            ]
+        )
+    if is_admin:
+        temp.append(
+            [
+                "Combination Calculation",
+                current_app.config["URL_DASH"][:-1]
+                + current_app.config["URL_SETTINGS"],
+                "material-symbols:settings",
+            ],
+        )
     tabs_content = dmc.Stack(
         [
             (
@@ -87,9 +88,25 @@ def make_nav_links(is_admin, user):
 
 
 def make_drawer_links(is_admin, user):
-    temp = tabs
-    if not is_admin:
-        temp = tabs[:-1]
+    temp = copy.deepcopy(tabs)
+    if user:
+        temp.append(
+            [
+                "Configuration",
+                current_app.config["URL_DASH"][:-1]
+                + current_app.config["URL_CONFIGURATION"],
+                "material-symbols:settings",
+            ]
+        )
+    if is_admin:
+        temp.append(
+            [
+                "Combination Calculation",
+                current_app.config["URL_DASH"][:-1]
+                + current_app.config["URL_SETTINGS"],
+                "material-symbols:settings",
+            ],
+        )
     tabs_content = dmc.Stack(
         [
             (

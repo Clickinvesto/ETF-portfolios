@@ -34,20 +34,20 @@ class OpenPay(DatabaseMixin):
         )
 
     def create_card(
-            self,
-            customer,
-            first_name,
-            last_name,
-            card_number,
-            expiry,
-            cvc,
-            city,
-            country_code,
-            postal_code,
-            line1,
-            line2,
-            line3,
-            state,
+        self,
+        customer,
+        first_name,
+        last_name,
+        card_number,
+        expiry,
+        cvc,
+        city,
+        country_code,
+        postal_code,
+        line1,
+        line2,
+        line3,
+        state,
     ):
         try:
             card = customer.cards.create(
@@ -128,16 +128,16 @@ class OpenPay(DatabaseMixin):
 
     @staticmethod
     def create_customer(
-            first_name,
-            last_name,
-            email,
-            department,
-            city,
-            country_code,
-            postal_code,
-            line1,
-            line2="",
-            line3="",
+        first_name,
+        last_name,
+        email,
+        department,
+        city,
+        country_code,
+        postal_code,
+        line1,
+        line2="",
+        line3="",
     ):
         try:
             customer = openpay.Customer.create(
@@ -150,6 +150,9 @@ class OpenPay(DatabaseMixin):
                     "additional": f"{line1} {line2} {line3} {postal_code} {country_code}",
                 },
             )
+            user = session["user"]
+            user["openpay_id"] = customer.id
+            session["user"] = user
             # print(customer)     # print newly created customer details
             print("Customer created successfully! Openpay Customer ID: ", customer.id)
             return customer, None
@@ -162,21 +165,21 @@ class OpenPay(DatabaseMixin):
             )
 
     def create_customer_subscription(
-            self,
-            first_name,
-            last_name,
-            email,
-            department,
-            card_number,
-            expiry,
-            cvc,
-            city,
-            country_code,
-            postal_code,
-            line1,
-            line2,
-            line3,
-            state,
+        self,
+        first_name,
+        last_name,
+        email,
+        department,
+        card_number,
+        expiry,
+        cvc,
+        city,
+        country_code,
+        postal_code,
+        line1,
+        line2,
+        line3,
+        state,
     ):
         customer, customer_api_error = self.create_customer(
             first_name,
@@ -239,13 +242,35 @@ class OpenPay(DatabaseMixin):
 
             if active_subscription:
                 plan = openpay.Plan.retrieve(active_subscription["plan_id"])
-                return customer, active_subscription, plan, {"message": None, "error_message": None}
+                return (
+                    customer,
+                    active_subscription,
+                    plan,
+                    {"message": None, "error_message": None},
+                )
             else:
-                return customer, None, None, {"message": "No active subscriptions found.", "error_message": None}
+                return (
+                    customer,
+                    None,
+                    None,
+                    {
+                        "message": "No active subscriptions found.",
+                        "error_message": None,
+                    },
+                )
         except openpay.error.OpenpayError as e:
             print("Error fetching subscription details:", e)
-            return None, None, None, {"message": None,
-                                      "error_message": "Error fetching subscription details: {}".format(e)}
+            return (
+                None,
+                None,
+                None,
+                {
+                    "message": None,
+                    "error_message": "Error fetching subscription details: {}".format(
+                        e
+                    ),
+                },
+            )
 
     @staticmethod
     def fetch_credit_cards(customer):
@@ -270,7 +295,9 @@ class OpenPay(DatabaseMixin):
             card.delete()
             # Delete card and purchases from the database
             if not self.delete_card_and_purchases_from_db(card_id):
-                raise Exception("Failed to delete card and purchases from the database.")
+                raise Exception(
+                    "Failed to delete card and purchases from the database."
+                )
             return True
         except openpay.error.OpenpayError as e:
             print("Error deleting card from OpenPay:", e)
@@ -279,7 +306,14 @@ class OpenPay(DatabaseMixin):
             print(e)
             return False
 
-    def delete_user(self, email=None, openpay_id=None, delete_user=False, delete_cards=False, delete_purchases=False):
+    def delete_user(
+        self,
+        email=None,
+        openpay_id=None,
+        delete_user=False,
+        delete_cards=False,
+        delete_purchases=False,
+    ):
         if not any([delete_user, delete_cards, delete_purchases]):
             print("No deletion action specified.")
             return False
@@ -293,13 +327,19 @@ class OpenPay(DatabaseMixin):
             if delete_cards and openpay_id:
                 # Remove cards for that specific customer
                 delete_cards_query = """DELETE FROM cards WHERE customer_id = ?"""
-                result = self.execute_query(delete_cards_query, {"customer_id": openpay_id})
+                result = self.execute_query(
+                    delete_cards_query, {"customer_id": openpay_id}
+                )
                 print(f"Cards for customer {openpay_id} deleted.")
 
             if delete_purchases and openpay_id:
                 # Remove purchases for that specific customer
-                delete_purchases_query = """DELETE FROM purchases WHERE customer_id = ?"""
-                result = self.execute_query(delete_purchases_query, {"customer_id": openpay_id})
+                delete_purchases_query = (
+                    """DELETE FROM purchases WHERE customer_id = ?"""
+                )
+                result = self.execute_query(
+                    delete_purchases_query, {"customer_id": openpay_id}
+                )
                 print(f"Purchases for customer {openpay_id} deleted.")
 
             return True
