@@ -42,10 +42,18 @@ class API(S3Mixin):
 
     def load_dispersion_data(self):
         import logging
+        from io import BytesIO
 
         logging.error("Read data")
+        s3file = self.get_data_file("data/" + self.dispersion_file)
+        s3_file_content = s3file.read()
+        logging.error("S3 file content fetched successfully")
+        # Log the first few bytes to ensure content is correct
+        logging.error("S3 file content (first 100 bytes): %s", s3_file_content[:100])
+        # Convert bytes to BytesIO for compatibility with Polars
+        file_like_object = BytesIO(s3_file_content)
         df = pl.read_csv(
-            self.get_data_file("data/" + self.dispersion_file),
+            file_like_object,
             separator=",",
             new_columns=["Series", "Combination", "Weights", "CAGR", "Risk"],
         )
