@@ -96,7 +96,6 @@ def init_graph(path):
     logging.error("Get the series")
     data = api.get_dispersion_data()
     logging.error("make graph")
-    print(data)
     figure = plotter.make_dispersion_plot(data)
     logging.error("finisehd")
     return figure

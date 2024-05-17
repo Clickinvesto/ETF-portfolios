@@ -51,6 +51,7 @@ class API(S3Mixin):
         df = pl.read_csv(
             file_like_object,
             separator=",",
+            low_memory=True,
             new_columns=["Series", "Combination", "Weights", "CAGR", "Risk"],
         )
         logging.error("Finished")
