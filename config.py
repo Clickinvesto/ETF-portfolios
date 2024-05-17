@@ -63,3 +63,4 @@ class URL:
     URL_LOGOUT = "/logout"
     URL_RESEND_VERIFY = "/verify"
     URL_VERIFY_EMAIL = "/vefify-email/<token>"
+    URL_CONFIGURATION = "/configuration"

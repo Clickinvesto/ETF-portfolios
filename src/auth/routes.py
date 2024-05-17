@@ -118,7 +118,7 @@ def login():
             user.last_login = datetime.datetime.now()
             user_dict = {
                 key: user.__dict__[key]
-                for key in ["id", "email", "is_admin", "subscription"]
+                for key in ["id", "email", "is_admin", "subscription", "openpay_id"]
             }
             db.session.commit()
             session["user"] = user_dict

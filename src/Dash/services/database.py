@@ -8,6 +8,9 @@ openpay = current_app.Openpay
 
 
 class OpenPay(DatabaseMixin):
+    subscription_data = []
+    cards_data = []
+
     def update_user_subscription(self, subscription, email):
 
         update_user_query = """UPDATE users
@@ -31,20 +34,20 @@ class OpenPay(DatabaseMixin):
         )
 
     def create_card(
-        self,
-        customer,
-        first_name,
-        last_name,
-        card_number,
-        expiry,
-        cvc,
-        city,
-        country_code,
-        postal_code,
-        line1,
-        line2,
-        line3,
-        state,
+            self,
+            customer,
+            first_name,
+            last_name,
+            card_number,
+            expiry,
+            cvc,
+            city,
+            country_code,
+            postal_code,
+            line1,
+            line2,
+            line3,
+            state,
     ):
         try:
             card = customer.cards.create(
@@ -125,16 +128,16 @@ class OpenPay(DatabaseMixin):
 
     @staticmethod
     def create_customer(
-        first_name,
-        last_name,
-        email,
-        department,
-        city,
-        country_code,
-        postal_code,
-        line1,
-        line2="",
-        line3="",
+            first_name,
+            last_name,
+            email,
+            department,
+            city,
+            country_code,
+            postal_code,
+            line1,
+            line2="",
+            line3="",
     ):
         try:
             customer = openpay.Customer.create(
@@ -159,21 +162,21 @@ class OpenPay(DatabaseMixin):
             )
 
     def create_customer_subscription(
-        self,
-        first_name,
-        last_name,
-        email,
-        department,
-        card_number,
-        expiry,
-        cvc,
-        city,
-        country_code,
-        postal_code,
-        line1,
-        line2,
-        line3,
-        state,
+            self,
+            first_name,
+            last_name,
+            email,
+            department,
+            card_number,
+            expiry,
+            cvc,
+            city,
+            country_code,
+            postal_code,
+            line1,
+            line2,
+            line3,
+            state,
     ):
         customer, customer_api_error = self.create_customer(
             first_name,
@@ -221,3 +224,104 @@ class OpenPay(DatabaseMixin):
         self.insert_purchase_details(subscription.id, customer.id, card.id)
 
         return customer, subscription, None
+
+    def fetch_subscription_and_plan(self, openpay_id):
+        try:
+            customer = openpay.Customer.retrieve(openpay_id)
+            self.subscription_data = customer.subscriptions.all()
+            self.cards_data = self.fetch_credit_cards(customer)
+
+            active_subscription = None
+            for subscription in self.subscription_data["data"]:
+                if subscription.get("status") == "active":
+                    active_subscription = subscription
+                    break
+
+            if active_subscription:
+                plan = openpay.Plan.retrieve(active_subscription["plan_id"])
+                return customer, active_subscription, plan, {"message": None, "error_message": None}
+            else:
+                return customer, None, None, {"message": "No active subscriptions found.", "error_message": None}
+        except openpay.error.OpenpayError as e:
+            print("Error fetching subscription details:", e)
+            return None, None, None, {"message": None,
+                                      "error_message": "Error fetching subscription details: {}".format(e)}
+
+    @staticmethod
+    def fetch_credit_cards(customer):
+        cards = customer.cards.all()
+        return cards["data"]
+
+    def delete_card_and_purchases_from_db(self, card_id):
+        try:
+            delete_purchases_query = """DELETE FROM purchases WHERE card_id = ?"""
+            result = self.execute_query(delete_purchases_query, {"card_id": card_id})
+            delete_card_query = """DELETE FROM cards WHERE card_id = ?"""
+            result = self.execute_query(delete_card_query, {"card_id": card_id})
+            return True
+        except Exception as e:
+            print("Error deleting card and purchases from database:", e)
+            return False
+
+    def delete_card_from_openpay(self, customer_id, card_id):
+        try:
+            customer = openpay.Customer.retrieve(customer_id)
+            card = customer.cards.retrieve(card_id)
+            card.delete()
+            # Delete card and purchases from the database
+            if not self.delete_card_and_purchases_from_db(card_id):
+                raise Exception("Failed to delete card and purchases from the database.")
+            return True
+        except openpay.error.OpenpayError as e:
+            print("Error deleting card from OpenPay:", e)
+            return False
+        except Exception as e:
+            print(e)
+            return False
+
+    def delete_user(self, email=None, openpay_id=None, delete_user=False, delete_cards=False, delete_purchases=False):
+        if not any([delete_user, delete_cards, delete_purchases]):
+            print("No deletion action specified.")
+            return False
+        try:
+            if delete_user and email:
+                # Remove user from the users table
+                delete_user_query = """DELETE FROM users WHERE email = ?"""
+                result = self.execute_query(delete_user_query, {"email": email})
+                print(f"User {email} deleted.")
+
+            if delete_cards and openpay_id:
+                # Remove cards for that specific customer
+                delete_cards_query = """DELETE FROM cards WHERE customer_id = ?"""
+                result = self.execute_query(delete_cards_query, {"customer_id": openpay_id})
+                print(f"Cards for customer {openpay_id} deleted.")
+
+            if delete_purchases and openpay_id:
+                # Remove purchases for that specific customer
+                delete_purchases_query = """DELETE FROM purchases WHERE customer_id = ?"""
+                result = self.execute_query(delete_purchases_query, {"customer_id": openpay_id})
+                print(f"Purchases for customer {openpay_id} deleted.")
+
+            return True
+        except Exception as e:
+            print("Error deleting user details:", e)
+            return False
+
+    @staticmethod
+    def delete_account_from_openpay(customer_id):
+        try:
+            customer = openpay.Customer.retrieve(customer_id)
+            subscriptions = customer.subscriptions.all()
+            for subscription in subscriptions["data"]:
+                if subscription["status"] == "active":
+                    subscription.delete()
+            cards = customer.cards.all()
+            for card in cards["data"]:
+                card.delete()
+
+            # Delete the customer account itself
+            # openpay.Customer.delete(customer_id)
+            return True
+        except openpay.error.OpenpayError as e:
+            print("Error deleting account from OpenPay:", e)
+            return False

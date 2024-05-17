@@ -26,6 +26,16 @@ tabs = [
         current_app.config["URL_DASH"][:-1] + current_app.config["URL_SETTINGS"],
         "material-symbols:settings",
     ],
+    [
+        "Configuration",
+        current_app.config["URL_DASH"][:-1] + current_app.config["URL_CONFIGURATION"],
+        "material-symbols:settings",
+    ],
+    [
+        "Configuration",
+        current_app.config["URL_DASH"][:-1] + current_app.config["URL_CONFIGURATION"],
+        "material-symbols:settings",
+    ],
 ]
 
 
