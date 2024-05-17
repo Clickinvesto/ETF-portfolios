@@ -53,7 +53,7 @@ class S3Storage(object):
     def get_files(self, path, directory):
         # Updated method for listing files using boto3
         if path == "":
-            path = "platform/"
+            path = "data/"
 
         def _strip_path(name, path):
             if name.startswith(path):

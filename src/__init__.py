@@ -1,6 +1,6 @@
 import dash
 import os
-import json
+import sys
 import boto3
 import datetime
 import openpay
@@ -23,8 +23,19 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_redmail import RedMail
 from flask_migrate import Migrate
 from src.admin.s3FileAdmin import S3FileAdmin
+from src.services.logging import configure_logger
 
 path = Path(__file__).resolve().parent / "Dash"
+# Get the directory containing your `src` folder
+BASE_DIR = Path(__file__).resolve().parent
+# Add it to sys.path
+sys.path.append(str(BASE_DIR))
+
+# Currently empty cache manually
+current_path = Path(__file__).parent.parent.resolve()
+log_path = current_path / "logs"
+if not log_path.is_dir():
+    log_path.mkdir()
 
 
 class CustomFileAdmin(FileAdmin):
@@ -134,7 +145,11 @@ def create_app():
         openpay.verify_ssl_certs = current_app.config["OPENPAY_VERIFY_SSL_CERTS"]
         openpay.merchant_id = current_app.config["OPENPAY_MERCHANT_ID"]
         openpay.country = current_app.config["OPENPAY_COUNTRY"]
-
+        configure_logger(
+            env=os.environ.get("ENVIRONMENT", "local"),
+            log_path=log_path,
+            name="default",
+        )
         current_app.Openpay = openpay
 
         # Integrate the dash application
@@ -143,9 +158,6 @@ def create_app():
         # Register admin views for managing user and uploading files
         from .models import User
 
-        admin_manager.add_view(
-            CustomFileAdmin(path / "data", name="Data Files", endpoint="data")
-        )
         admin_manager.add_view(
             CustomFileAdmin(path / "config", name="Config Files", endpoint="config")
         )
