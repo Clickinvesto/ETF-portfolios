@@ -4,3 +4,4 @@ cache/*
 .env
 instance
 instance/database.db
+logs

@@ -159,6 +159,9 @@ def create_app():
         from .models import User
 
         admin_manager.add_view(
+            CustomFileAdmin(log_path, name="Log Files", endpoint="log")
+        )
+        admin_manager.add_view(
             CustomFileAdmin(path / "config", name="Config Files", endpoint="config")
         )
         admin_manager.add_view(
