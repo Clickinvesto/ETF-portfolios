@@ -41,11 +41,15 @@ class API(S3Mixin):
         self.cofiguration = data
 
     def load_dispersion_data(self):
+        import logging
+
+        logging.error("Read data")
         df = pl.read_csv(
             self.get_data_file("data/" + self.dispersion_file),
             separator=",",
             new_columns=["Series", "Combination", "Weights", "CAGR", "Risk"],
         )
+        logging.error("Finished")
         return df
 
     def get_dispersion_data(self):
