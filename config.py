@@ -20,7 +20,10 @@ class Config:
     DATABASE_URL = environ.get("DATABASE_URL")
     # Database
     DATABASE_PATH = f"{database_path}"
-    SQLALCHEMY_DATABASE_URI = environ.get("DATABASE_URL", "sqlite:///database.db")
+    uri = environ.get("DATABASE_URL", "sqlite:///database.db")
+    if uri and uri.startswith("postgres://"):
+        uri = uri.replace("postgres://", "postgresql://", 1)
+    SQLALCHEMY_DATABASE_URI = uri
     SQLALCHEMY_ECHO = False
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
