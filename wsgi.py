@@ -1,6 +1,24 @@
 import eventlet
 
 eventlet.monkey_patch()
+
+import sys
+
+
+# Patch openpay.util.utf8 function
+def utf8(value):
+    if isinstance(value, bytes):
+        return value
+    if isinstance(value, str):
+        return value.encode("utf-8")
+    return value
+
+
+# Apply the patch
+import openpay.util
+
+openpay.util.utf8 = utf8
+
 from src import create_app
 from flask_socketio import SocketIO
 import os
