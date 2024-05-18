@@ -34,7 +34,10 @@ register_page(__name__, name="Composition", path=current_app.config["URL_COMPOSI
 page_name = "compostion"
 
 
-def layout(**kwargs):
+def layout(socket_ids=None, **kwargs):
+    print(socket_ids)
+    if socket_ids == None:
+        raise PreventUpdate
     # This page requires the user to subscripe. So first check if the user is logged in.
     user = session.get("user", False)
 
