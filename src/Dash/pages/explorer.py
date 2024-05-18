@@ -31,7 +31,9 @@ api = API()
 plotter = plotting_engine()
 
 
-def layout(**kwargs):
+def layout(socket_ids=None, **kwargs):
+    if socket_ids == None:
+        raise PreventUpdate
     # ToDo in the future we can add other information here as well for example from the user
     # Wait for the socket to be connected
     return full_layout()

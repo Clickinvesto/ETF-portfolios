@@ -27,7 +27,9 @@ register_page(
 )
 
 
-def layout(**kwargs):
+def layout(socket_ids=None, **kwargs):
+    if socket_ids == None:
+        raise PreventUpdate
     user = session.get("user", False)
     if not user:
         return dmc.Container()

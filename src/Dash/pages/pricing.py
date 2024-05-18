@@ -20,7 +20,9 @@ from dash_iconify import DashIconify
 register_page(__name__, name="Pricing", path=current_app.config["URL_PRICING"])
 
 
-def layout(**kwargs):
+def layout(socket_ids=None, **kwargs):
+    if socket_ids == None:
+        raise PreventUpdate
     # ToDo in the future we can add other information here as well for example from the user
     # Wait for the socket to be connected
     print(session.get("user"))

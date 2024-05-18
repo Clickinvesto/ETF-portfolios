@@ -1,4 +1,4 @@
-from dash import Dash
+from dash import Dash, Input
 
 from .base import layout
 
@@ -16,6 +16,7 @@ def create_dashapp(server, base_url):
         pages_folder="pages",
         prevent_initial_callbacks="initial_duplicate",
         suppress_callback_exceptions=True,
+        routing_callback_inputs={"socket_ids": Input("dash_websocket", "socketId")},
     )
     # Set favicon
     # app._favicon = f"{assets_path}/img/favicon.ico"

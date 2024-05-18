@@ -112,7 +112,9 @@ def generate_portfolios(column_names, weight_combinations):
                 pass
 
 
-def layout(**kwargs):
+def layout(socket_ids=None, **kwargs):
+    if socket_ids == None:
+        raise PreventUpdate
     # ToDo in the future we can add other information here as well for example from the user
     user = session.get("user", False)
     if not user:
