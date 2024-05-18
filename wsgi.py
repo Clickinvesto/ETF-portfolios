@@ -1,3 +1,6 @@
+import eventlet
+
+eventlet.monkey_patch()
 from src import create_app
 from flask_socketio import SocketIO
 import os
@@ -9,7 +12,7 @@ load_dotenv(dotenv_path)
 # Here we start our application server
 
 app = create_app()
-
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 if __name__ == "__main__":
     socketio = SocketIO(app)
-    socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
+    socketio.run(app, debug=True)
