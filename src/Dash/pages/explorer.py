@@ -55,7 +55,10 @@ def full_layout():
                                 "*Reference Index RI stands for S&P500 measured by SPY ETF",
                                 size="sm",
                             ),
-                        ]
+                        ],
+                        style={
+                            "max-width": "50%",
+                        },
                     ),
                     dmc.Paper(
                         [
@@ -67,11 +70,12 @@ def full_layout():
                                 children=[],
                                 id="performance_table",
                             ),
-                        ]
+                        ],
+                        style={"max-width": "50%"},
                     ),
                 ],
                 style={
-                    "width": "calc(100% - 1px)",
+                    "width": "inherit",
                     "display": "flex",
                     "flex-direction": "row",
                     "align": "center",
