@@ -1,40 +1,48 @@
 import dash_mantine_components as dmc
-import uuid
+import json
 from dash_credit_cards import DashCreditCards, DashParallaxTilt, DashCreditCardInput
 from dash import (
+    register_page,
     html,
+    dcc,
     callback,
     Input,
-    State,
     Output,
+    State,
     ctx,
     no_update,
-    callback_context,
+    MATCH,
+    Patch,
     clientside_callback,
 )
 from dash.exceptions import PreventUpdate
 from dash_iconify import DashIconify
 from src.Dash.services.database import OpenPay
 from src.Dash.utils.functions import get_countries
-from flask import session
+from flask import session, current_app
 from src.Dash.services.NotificationProvider import NotificationProvider
+from src.Dash.model.subscribe_form import sub_form, SubscribeData
+from dash_pydantic_form import FormSection, ModelForm, Sections, fields, ids
+from pydantic import BaseModel, Field, ValidationError
 
 notify = NotificationProvider()
 api = OpenPay()
 
+register_page(__name__, name="Pricing", path=current_app.config["URL_SUBSCRIBTION"])
 
-sub_modal = dmc.Modal(
-    id="subscription_modal",
-    centered=True,
-    zIndex=99,
-    size="55%",
-    children=dmc.Container(
+
+def layout(socket_ids=None, **kwargs):
+    if socket_ids == None:
+        raise PreventUpdate
+
+    return full_layout(user=session.get("user"))
+
+
+def full_layout(user=False):
+    return dmc.Container(
         [
-            dmc.Group(
-                [
-                    dmc.Text(id="plan_text", weight=700, size="lg"),
-                ],
-                position="center",
+            dmc.Text(
+                "You choose a silver plan for 7 USD", fw=700, size="lg", ta="center"
             ),
             dmc.Space(h=15),
             DashParallaxTilt(
@@ -65,18 +73,18 @@ sub_modal = dmc.Modal(
                 [
                     dmc.TextInput(
                         id="first_name_form",
-                        # label="First Name",
+                        label="First Name",
                         style={"width": 200},
-                        placeholder="Your First Name",
+                        required=True,
                     ),
                     dmc.TextInput(
                         id="last_name_form",
-                        # label="Last Name",
+                        label="Last Name",
                         style={"width": 200},
-                        placeholder="Your Last Name",
+                        required=True,
                     ),
                 ],
-                position="center",
+                justify="center",
             ),
             dmc.Space(h=10),
             html.Center(
@@ -95,34 +103,41 @@ sub_modal = dmc.Modal(
             dmc.Group(
                 [
                     dmc.TextInput(
-                        id="city", placeholder="City", style={"width": "200"}
+                        id="city",
+                        label="City",
+                        style={"width": "200"},
+                        required=True,
                     ),
                     dmc.Select(
+                        label="Country",
                         placeholder="Select your country",
                         id="country_code",
                         searchable=True,
                         data=get_countries(),
                         style={"width": 200},
+                        required=True,
                     ),
                     dmc.TextInput(
+                        label="Postal Code",
                         id="postal_code",
-                        placeholder="Your postal code",
                         style={"width": "200"},
+                        required=True,
                     ),
                     dmc.TextInput(
-                        id="line1", placeholder="Address line 1", style={"width": "200"}
+                        id="line1",
+                        label="Street, House number",
+                        style={"width": "200"},
+                        required=True,
                     ),
                     dmc.TextInput(
-                        id="line2", placeholder="Address line 2", style={"width": "200"}
+                        id="line2", label="Address line 2", style={"width": "200"}
                     ),
                     dmc.TextInput(
-                        id="line3", placeholder="Address line 3", style={"width": "200"}
+                        id="line3", label="Address line 3", style={"width": "200"}
                     ),
-                    dmc.TextInput(
-                        id="state", placeholder="Your State", style={"width": "200"}
-                    ),
+                    dmc.TextInput(id="state", label="State", style={"width": "200"}),
                 ],
-                position="center",
+                justify="center",
             ),
             dmc.Space(h=10),
             html.P(id="error_element", style={"color": "red"}),
@@ -133,13 +148,43 @@ sub_modal = dmc.Modal(
                     dmc.Space(w=10),
                     dmc.Button("Subscribe", color="green", id="make_subscription"),
                 ],
-                position="center",
+                justify="center",
             ),
         ],
         style={"width": "60%"},
         fluid=True,
-    ),
+    )
+
+
+@callback(
+    Output("output", "children"),
+    Input("make_subscription", "n_clicks"),
+    Input(ModelForm.ids.form("subscription_data", "subscription_form"), "data-submit"),
+    State(ModelForm.ids.main("subscription_data", "subscription_form"), "data"),
 )
+def check_form(_trigger: int, _trigger2: int, form_data: dict):
+    print(form_data)
+    try:
+        SubscribeData.model_validate(form_data)
+    except ValidationError as exc:
+        return [
+            dmc.Text("Validation errors", fw=500, c="red"),
+            dmc.List(
+                [
+                    dmc.ListItem(
+                        [
+                            ".".join([str(x) for x in error["loc"]]),
+                            f" : {error['msg']}, got {error['input']}",
+                        ],
+                    )
+                    for error in exc.errors()
+                ],
+                size="sm",
+                c="red",
+            ),
+        ]
+
+    return ""
 
 
 @callback(

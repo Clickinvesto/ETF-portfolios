@@ -32,7 +32,7 @@ class plotting_engine:
                 x=[x],
                 y=[y],
                 name="RI",
-                marker=dict(color="#004C94", size=8),
+                marker=dict(color="#add8e6", size=8),
                 mode="markers",
                 hovertemplate="CAGR: %{y:.2f}%<br>Risk: %{x:.2f}%<extra></extra>",
             )
@@ -147,10 +147,11 @@ class plotting_engine:
                     y=data[series].tolist(),
                     mode="lines",
                     name=series,
+                    line=dict(width=2.5),
                     marker=dict(
                         color=self.get_color(
                             configuration.get("selected_series_color", "blue")
-                        )
+                        ),
                     ),
                 )
             )

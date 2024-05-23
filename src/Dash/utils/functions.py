@@ -29,4 +29,6 @@ def get_countries():
         separator=",",
         new_columns=["label", "value"],
     )
-    return [{"label": row[0], "value": row[1]} for row in dataframe.iter_rows()]
+    mapping = {row[1]: row[0] for row in dataframe.iter_rows()}
+    values = {row[1]: row[1] for row in dataframe.iter_rows()}
+    return mapping, values

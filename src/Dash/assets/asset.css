@@ -54,13 +54,3 @@ body {
     border-bottom: 2px solid  rgba(var(--mantine-color-text), 1);
   }
 
-.page-body {
-    left: 220px;
-    position: fixed;
-}
-  /* Hide (left-hand) Navbar as page narrows */
-@media only screen and (max-width: 1200px) {
-    .page-body {
-        left: 0;
-    }
-  }

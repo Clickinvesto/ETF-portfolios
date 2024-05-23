@@ -1,6 +1,5 @@
 import decimal
 
-from dash import html
 from flask import current_app
 from src.Dash.utils.functions import get_config
 import dash_mantine_components as dmc
@@ -32,11 +31,11 @@ def make_cagr_risk_table(
 
     align_style = {"text-align": "center"}
     header = [
-        html.Tr(
+        dmc.TableTr(
             [
-                html.Th(table_header[0]),
-                html.Th(table_header[1], style=align_style),
-                html.Th(
+                dmc.TableTh(table_header[0]),
+                dmc.TableTh(table_header[1], style=align_style),
+                dmc.TableTh(
                     dmc.Anchor(
                         table_header[2],
                         href=current_app.config["URL_COMPOSITION"]
@@ -50,12 +49,12 @@ def make_cagr_risk_table(
     ]
 
     rows = [
-        html.Tr(
+        dmc.TableTr(
             [
                 (
-                    html.Td(cell)
+                    dmc.TableTd(cell)
                     if index < 1
-                    else html.Td(
+                    else dmc.TableTd(
                         f"{str(round(decimal.Decimal(cell), 2))}%",
                         style=align_style,
                     )
@@ -66,20 +65,19 @@ def make_cagr_risk_table(
         for row in data
     ]
     rows.append(
-        html.Tr(
+        dmc.TableTr(
             [
-                html.Td(cell) if index < 1 else html.Td(cell, style=align_style)
+                dmc.TableTd(cell) if index < 1 else dmc.TableTd(cell, style=align_style)
                 for index, cell in enumerate(last_row)
             ]
         )
     )
-    table = [html.Thead(header), html.Tbody(rows)]
+    table = [dmc.TableThead(header), dmc.TableTbody(rows)]
     return [
         dmc.Table(
             children=table,
-            striped=True,
-            highlightOnHover=True,
-            withBorder=True,
+            withRowBorders=True,
+            withTableBorder=True,
             withColumnBorders=True,
         ),
         dmc.Space(h=10),
