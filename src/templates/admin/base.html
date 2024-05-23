@@ -52,10 +52,6 @@
             </button>
             <!-- navbar content -->
             <div class="collapse navbar-collapse" id="admin-navbar-collapse">
-                {% block brand %}
-                <a class="navbar-brand" href="{{ admin_view.admin.url }}"><img
-                        src="{{ url_for('static', filename='/img/mes_rgb.png') }}"></a>
-                {% endblock %}
                 {% block main_menu %}
                 <ul class="nav navbar-nav mr-auto">
                     {{ layout.menu() }}

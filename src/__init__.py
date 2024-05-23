@@ -42,7 +42,6 @@ if not log_path.is_dir():
 class CustomFileAdmin(FileAdmin):
     can_delete_dirs = False
     can_mkdir = False
-    editable_extensions = "json"
 
 
 admin_manager = Admin(template_mode="bootstrap4", index_view=AdminIndexView())
@@ -60,7 +59,7 @@ def create_app():
     app.config.from_object("config.URL")
     # Initialize Plugins and register them with the app
     # Set up logging
-
+    app.config["FLASK_ADMIN_SWATCH"] = "cerulean"
     configure_logger(
         env=os.environ.get("ENVIRONMENT", "local"),
         log_path=log_path,

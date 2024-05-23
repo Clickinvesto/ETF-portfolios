@@ -126,7 +126,7 @@ def full_layout(user=False):
                                             dmc.Space(h=10),
                                             dmc.Anchor(
                                                 "Use Free",
-                                                style={"color": "#004c94"},
+                                                style={"backgrund-color": "#004c94"},
                                                 href=current_app.config["URL_EXPLORER"],
                                                 refresh=True,
                                             ),

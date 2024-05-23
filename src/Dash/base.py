@@ -103,7 +103,7 @@ def layout():
                     id="dash_websocket",
                     eventNames=["notification"],
                 ),
-                dmc.NotificationProvider(),
+                dmc.NotificationProvider(position="top-center", autoClose=3000),
                 html.Div(id="notify_container"),
                 dmc.AppShellHeader(make_header(), px=25, style={"padding-top": "10px"}),
                 dmc.AppShellNavbar(make_navbar()),

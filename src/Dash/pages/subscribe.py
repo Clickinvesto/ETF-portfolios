@@ -1,5 +1,6 @@
 import dash_mantine_components as dmc
 import json
+import uuid
 from dash_credit_cards import DashCreditCards, DashParallaxTilt, DashCreditCardInput
 from dash import (
     register_page,
@@ -113,7 +114,7 @@ def full_layout(user=False):
                         placeholder="Select your country",
                         id="country_code",
                         searchable=True,
-                        data=get_countries(),
+                        data=get_countries(dict_output=True),
                         style={"width": 200},
                         required=True,
                     ),
@@ -135,7 +136,9 @@ def full_layout(user=False):
                     dmc.TextInput(
                         id="line3", label="Address line 3", style={"width": "200"}
                     ),
-                    dmc.TextInput(id="state", label="State", style={"width": "200"}),
+                    dmc.TextInput(
+                        id="state", label="State", style={"width": "200"}, required=True
+                    ),
                 ],
                 justify="center",
             ),
@@ -156,6 +159,7 @@ def full_layout(user=False):
     )
 
 
+"""
 @callback(
     Output("output", "children"),
     Input("make_subscription", "n_clicks"),
@@ -185,6 +189,7 @@ def check_form(_trigger: int, _trigger2: int, form_data: dict):
         ]
 
     return ""
+"""
 
 
 @callback(
@@ -220,8 +225,6 @@ def update_credit_card(first_name, last_name, card_input, expiry, cvc, socketid)
     else:
         issuer = ""
 
-    # print(expiry, cvc)
-    ctx = callback_context
     triggered_component = ctx.triggered[0]["prop_id"].split(".")[0]
 
     input_focus = None
@@ -290,9 +293,9 @@ def update_output(
     state,
     socket_id,
 ):
-    ctx = callback_context
     if not ctx.triggered:
         raise PreventUpdate
+
     button_id = ctx.triggered[0]["prop_id"].split(".")[0]
     if button_id == "make_subscription":
         error_message = validate_input(
@@ -405,7 +408,6 @@ def update_output(
                 id=notification_id,
             )
             return (
-                False,
                 "",
                 "",
                 "",
@@ -427,7 +429,6 @@ def update_output(
             )
     elif button_id == "clear":
             return (
-                True,
                 "",
                 "",
                 "",
