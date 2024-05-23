@@ -20,6 +20,11 @@ from src import login_manager
 from src.models import User, db
 from .forms import LoginForm, SignupForm, ResetPasswordForm
 from .. import mail
+from src.Dash.services.database import OpenPay
+from src.Dash.services.NotificationProvider import NotificationProvider
+
+notify = NotificationProvider()
+api = OpenPay()
 
 # Register auth_bp as blueprint
 auth_bp = Blueprint(
@@ -181,7 +186,7 @@ def signup():
                 {
                     "email_address": user.email,
                     "exp": datetime.datetime.now(tz=datetime.timezone.utc)
-                    + datetime.timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
+                           + datetime.timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
                 },
                 current_app.config["SECRET_KEY"],
                 algorithm="HS256",
@@ -238,7 +243,7 @@ def resent_email():
             {
                 "email_address": existing_user.email,
                 "exp": datetime.datetime.now(tz=datetime.timezone.utc)
-                + datetime.timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
+                       + datetime.timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
             },
             current_app.config["SECRET_KEY"],
             algorithm="HS256",
@@ -277,9 +282,16 @@ def verify_email(token):
         data = jwt.decode(token, current_app.config["SECRET_KEY"], algorithms=["HS256"])
         email = data["email_address"]
         user = User.query.filter_by(email=email).first()
-        user.verified = True
-        db.session.commit()
-        flash("You can log in now", category="success")
+        if user:
+            user.verified = True
+            db.session.commit()
+
+            # Create OpenPay customer
+            openpay_customer, customer_api_error = api.create_openpay_customer(email)
+            if customer_api_error:
+                flash("Failed to create customer at OpenPay", category="danger")
+            else:
+                flash("You can log in now", category="success")
         return redirect(url_for("auth_bp.login"))
 
     except jwt.ExpiredSignatureError:
@@ -306,7 +318,7 @@ def reset_password():
             {
                 "email_address": email,
                 "exp": datetime.datetime.now(tz=datetime.timezone.utc)
-                + datetime.timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
+                       + datetime.timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
             },
             current_app.config["SECRET_KEY"],
             algorithm="HS256",

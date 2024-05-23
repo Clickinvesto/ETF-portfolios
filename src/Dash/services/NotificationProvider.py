@@ -49,11 +49,10 @@ class NotificationProvider:
                 action="show",
                 autoClose=False,
             )
-
         elif type == "error_process":
             return dmc.Notification(
                 id="initialise_model" if id is None else id,
-                title=title if title else "Error occured",
+                title=title if title else "Error occurred",
                 message=(
                     message
                     if message
@@ -62,7 +61,6 @@ class NotificationProvider:
                 color="red",
                 action="update",
             )
-
         elif type == "success":
             return dmc.Notification(
                 id="initialise_model" if id is None else id,
