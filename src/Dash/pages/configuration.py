@@ -114,16 +114,22 @@ def full_layout(error_message):
                             id="delete_openpay_account",
                         ),
                     ],
-                    position="left",
+                    style={
+                        "width": "calc(100% - 1px)",
+                        "display": "flex",
+                        "flex-direction": "row",
+                        "align": "center",
+                        "justify-content": "space-around",
+                        "flex-wrap": "wrap",
+                        "gap": "10px",
+                    },
                 ),
                 # Add a hidden dcc.Location, div to trigger for redirection
                 dcc.Location(id="redirect", refresh=True),
                 html.Div(id="redirect-trigger", style={"display": "none"}),
                 dcc.Store(id="store-account-data", storage_type="memory"),
             ],
-            style={
-                "padding": "20px",
-            },
+            fluid=True,
         )
 
 

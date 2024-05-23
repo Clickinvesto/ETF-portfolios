@@ -14,7 +14,6 @@ from dash import (
 )
 from flask import current_app, session
 from dash.exceptions import PreventUpdate
-
 from dash_iconify import DashIconify
 
 register_page(__name__, name="Pricing", path=current_app.config["URL_PRICING"])
@@ -23,9 +22,7 @@ register_page(__name__, name="Pricing", path=current_app.config["URL_PRICING"])
 def layout(socket_ids=None, **kwargs):
     if socket_ids == None:
         raise PreventUpdate
-    # ToDo in the future we can add other information here as well for example from the user
-    # Wait for the socket to be connected
-    print(session.get("user"))
+
     return full_layout(user=session.get("user"))
 
 
@@ -40,19 +37,13 @@ def full_layout(user=False):
         },
     )
 
-    subscribe = dmc.ActionIcon(
+    subscribe = dmc.Anchor(
         "Subscribe",
-        id="subscription",
+        href=current_app.config["URL_SUBSCRIBTION"],
+        refresh=True,
         style={
-            "color": "rgb(28, 126, 214)",
-            "line-height": 1.55,
-            "text-decoration": "none",
-            "display": "block",
-            "white-space": "pre-wrap",
-            "background-color": "transparent",
-            "cursor": "pointer",
-            "padding": 0,
-            "border": 0,
+            "backgrund-color": "#004c94",
+            "border-radius": "20px",
         },
     )
 
@@ -64,9 +55,9 @@ def full_layout(user=False):
                         [
                             dmc.Text(
                                 "MONTHLY PLANS",
-                                weight=700,
-                                color="#004c94",
-                                transform="uppercase",
+                                fw=700,
+                                c="#004c94",
+                                tt="uppercase",
                                 size="xl",
                             ),
                             dmc.Group(
@@ -79,9 +70,9 @@ def full_layout(user=False):
                                                     children=[
                                                         dmc.Text(
                                                             "0 USD",
-                                                            weight=700,
-                                                            transform="uppercase",
-                                                            color="#fff",
+                                                            fw=700,
+                                                            tt="uppercase",
+                                                            c="#fff",
                                                             size="xl",
                                                         )
                                                     ],
@@ -93,13 +84,13 @@ def full_layout(user=False):
                                                 [
                                                     dmc.Text(
                                                         "FREE",
-                                                        weight=500,
-                                                        transform="uppercase",
-                                                        color="#018bcf",
+                                                        fw=500,
+                                                        tt="uppercase",
+                                                        c="#018bcf",
                                                         size="xl",
                                                     ),
                                                 ],
-                                                position="left",
+                                                justify="flex-start",
                                                 mt="md",
                                                 mb="xs",
                                             ),
@@ -135,7 +126,7 @@ def full_layout(user=False):
                                             dmc.Space(h=10),
                                             dmc.Anchor(
                                                 "Use Free",
-                                                color="#004c94",
+                                                style={"color": "#004c94"},
                                                 href=current_app.config["URL_EXPLORER"],
                                                 refresh=True,
                                             ),
@@ -153,9 +144,9 @@ def full_layout(user=False):
                                                     children=[
                                                         dmc.Text(
                                                             "7 USD",
-                                                            weight=700,
-                                                            transform="uppercase",
-                                                            color="#fff",
+                                                            fw=700,
+                                                            tt="uppercase",
+                                                            c="#fff",
                                                             size="xl",
                                                         )
                                                     ],
@@ -167,13 +158,13 @@ def full_layout(user=False):
                                                 [
                                                     dmc.Text(
                                                         "SILVER",
-                                                        weight=500,
-                                                        transform="uppercase",
-                                                        color="#018bcf",
+                                                        fw=500,
+                                                        tt="uppercase",
+                                                        c="#018bcf",
                                                         size="xl",
                                                     ),
                                                 ],
-                                                position="left",
+                                                justify="flex-start",
                                                 mt="md",
                                                 mb="xs",
                                             ),
@@ -211,8 +202,8 @@ def full_layout(user=False):
                                         style={"width": 350},
                                     ),
                                 ],
-                                position="center",
-                                spacing="xl",
+                                justify="center",
+                                gap="xl",
                             ),
                         ],
                         align="center",

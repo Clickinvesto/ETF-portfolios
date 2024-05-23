@@ -50,69 +50,64 @@ def layout(socket_ids=None, **kwargs):
 def full_layout():
     return dmc.Container(
         [
-            dmc.Grid(
+            dmc.Flex(
                 [
-                    dmc.Col(
-                        dmc.Paper(
-                            dmc.Stack(
-                                [
-                                    dmc.Select(
-                                        label="Select a Series",
-                                        data=api.get_series(),
-                                        id="series_selection",
-                                        style={"width": 200},
-                                    ),
-                                    dmc.Table(
-                                        id="composition_table",
-                                        striped=True,
-                                        highlightOnHover=True,
-                                        withBorder=True,
-                                        withColumnBorders=True,
-                                    ),
-                                ]
-                            )
+                    dmc.Paper(
+                        dmc.Stack(
+                            [
+                                dmc.Select(
+                                    label="Select a Series",
+                                    data=api.get_series(),
+                                    id="series_selection",
+                                    style={"width": 200},
+                                ),
+                                dmc.Table(
+                                    id="composition_table",
+                                    withTableBorder=True,
+                                    withColumnBorders=True,
+                                    withRowBorders=True,
+                                ),
+                                dmc.Table(
+                                    id="risk_table",
+                                    withTableBorder=True,
+                                    withColumnBorders=True,
+                                    withRowBorders=True,
+                                ),
+                            ]
                         ),
-                        span=12,
-                        lg=5,
                     ),
-                    dmc.Col(
-                        dmc.Paper(
-                            dcc.Graph(
-                                id="pie_chart",
-                                figure=blank_fig(),
-                            )
-                        ),
-                        span=12,
-                        lg=5,
+                    dmc.Paper(
+                        dcc.Graph(
+                            id="pie_chart",
+                            figure=blank_fig(),
+                        )
                     ),
                 ],
-                gutter="xl",
                 style={
                     "width": "calc(100% - 1px)",
+                    "display": "flex",
+                    "flex-direction": "row",
+                    "align": "center",
+                    "justify-content": "space-around",
+                    "flex-wrap": "wrap",
+                    "gap": "10px",
                 },
             )
         ],
-        style={
-            "overflow-y": "scroll",
-            "position": "fixed",
-            "padding": "10px",
-            "display": "block",
-            "max-height": "calc(100% - 70px)",
-        },
         fluid=True,
     )
 
 
 def create_table(header_data, value_data):
-    header = [html.Tr([html.Th(col) for col in header_data])]
+    header = [dmc.TableTr([dmc.TableTh(col) for col in header_data])]
 
     rows = [
-        html.Tr(
+        dmc.TableTr(
             [
                 (
-                    html.Td(cell)
+                    dmc.TableTd(cell)
                     if index < 1
-                    else html.Td(
+                    else dmc.TableTd(
                         f"{str(round(decimal.Decimal(cell*100), 2))}%",
                     )
                 )
@@ -121,7 +116,27 @@ def create_table(header_data, value_data):
         )
         for row in value_data
     ]
-    table = [html.Thead(header), html.Tbody(rows)]
+    table = [dmc.TableThead(header), dmc.TableTbody(rows)]
+    return table
+
+
+def create_risk_table(header_data, value_data):
+    header = [dmc.TableTr([dmc.TableTh(col) for col in header_data])]
+
+    rows = [
+        dmc.TableTr(
+            [
+                (
+                    dmc.TableTd(
+                        f"{str(round(decimal.Decimal(cell), 2))}%",
+                    )
+                )
+                for index, cell in enumerate(row)
+            ]
+        )
+        for row in value_data
+    ]
+    table = [dmc.TableThead(header), dmc.TableTbody(rows)]
     return table
 
 
@@ -134,7 +149,9 @@ def create_table(header_data, value_data):
 def fill_selection(pathname, store, current_selection):
     if current_selection is None:
         if store:
-            return store
+            selection = store.get("points")[0]
+            selected_series = selection.get("text")
+            return selected_series
         else:
             return "x1"
     raise PreventUpdate
@@ -159,3 +176,18 @@ def update_page(series):
     table_header = ["Selected Symbol", "Percentage"]
     table_data = [list(pair) for pair in zip(filtered_indices, filtered_weights)]
     return figure, create_table(table_header, table_data)
+
+
+@callback(
+    Output("risk_table", "children"),
+    Input("series_selection", "value"),
+    prevent_initial_call=True,
+)
+def update_risk_table(series):
+
+    normalised_data, reference_series, number_month = api.get_weighted_series(series)
+
+    cagr, risk = api.calc_CAGR(normalised_data, number_month)
+    table_header = ["CAGR", "Risk"]
+    table_data = [[cagr[series], risk[series]]]
+    return create_risk_table(table_header, table_data)

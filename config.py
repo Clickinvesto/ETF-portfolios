@@ -64,3 +64,4 @@ class URL:
     URL_RESEND_VERIFY = "/verify"
     URL_VERIFY_EMAIL = "/vefify-email/<token>"
     URL_CONFIGURATION = "/configuration"
+    URL_SUBSCRIBTION = "/subscribtion"

@@ -2,7 +2,6 @@ import dash_mantine_components as dmc
 from dash import html, page_container, dcc, callback, Input, State, Output
 from src.Dash.components.navbar import make_navbar
 from src.Dash.components.header import make_header
-from src.Dash.components.subscription_modal import sub_modal
 from dash_bootstrap_templates import load_figure_template
 from flask import current_app, session, redirect, url_for
 from dash.exceptions import PreventUpdate
@@ -24,23 +23,7 @@ base_schema = {
     "components": {
         "Grid": {
             "styles": {
-                "root": {
-                    "margin": 0,
-                    "padding": "10px",
-                    "grid-gap": 10,
-                    "min-height": "100vh",
-                    "min-width": "95vw",
-                    "overflow": "auto",
-                    "align-content": "flex-start",
-                    "align-items": "stretch",
-                },
-                "col": {
-                    "display": "flex",
-                    "flex-direction": "column",
-                    "grid-gap": "10px",
-                    "margin": 0,
-                    "padding": 0,
-                },
+                "root": {},
             }
         },
         "Paper": {
@@ -48,6 +31,7 @@ base_schema = {
                 "root": {
                     "box-shadow": "4px 5px 21px -3px rgba(66, 68, 90, 1)",
                     "padding": 10,
+                    "flex": "1 1 0",
                 }
             }
         },
@@ -111,33 +95,28 @@ def layout():
     """
     base_layout = dmc.MantineProvider(
         theme=base_schema,
-        inherit=True,
-        withCSSVariables=True,
-        withGlobalStyles=True,
-        withNormalizeCSS=True,
-        children=dmc.NotificationsProvider(
+        children=dmc.AppShell(
             [
                 dcc.Location(id="url", refresh=True),
                 dcc.Store(id="series_store", storage_type="session"),
-                html.Div(id="notify_container"),
                 DashSocketIO(
                     id="dash_websocket",
                     eventNames=["notification"],
                 ),
-                make_header(),
-                make_navbar(),
-                sub_modal,
-                html.Div(
-                    html.Div(
-                        children=[page_container],
-                        className="page-body",
-                    ),
-                ),
+                dmc.NotificationProvider(),
+                html.Div(id="notify_container"),
+                dmc.AppShellHeader(make_header(), px=25, style={"padding-top": "10px"}),
+                dmc.AppShellNavbar(make_navbar()),
+                dmc.AppShellMain(page_container),
             ],
-            containerWidth="25%",
-            autoClose=5000,
-            zIndex=10000,
-            position="top-center",
+            header={"height": 70},
+            padding="10px",
+            navbar={
+                "width": 200,
+                "breakpoint": "md",
+                "collapsed": {"mobile": True},
+            },
+            id="app-shell",
         ),
     )
 

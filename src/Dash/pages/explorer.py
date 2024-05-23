@@ -43,61 +43,61 @@ def full_layout():
     return dmc.Container(
         [
             dmc.Title("Portfolio Exploration", order=2),
-            dmc.Grid(
+            dmc.Flex(
                 [
-                    dmc.Col(
+                    dmc.Paper(
                         [
-                            dmc.Paper(
-                                dcc.Graph(
-                                    id="dispersion_plot",
-                                    figure=blank_fig(),
-                                )
+                            dcc.Graph(
+                                id="dispersion_plot",
+                                figure=blank_fig(),
                             ),
-                        ],
-                        span=12,
-                        lg=5,
+                            dmc.Text(
+                                "*Reference Index RI stands for S&P500 measured by SPY ETF",
+                                size="sm",
+                            ),
+                        ]
                     ),
-                    dmc.Col(
+                    dmc.Paper(
                         [
-                            dmc.Paper(
-                                [
-                                    dcc.Graph(
-                                        id="performance_plot",
-                                        figure=blank_fig(),
-                                    ),
-                                    html.Div(
-                                        children=[],
-                                        id="performance_table",
-                                    ),
-                                ]
-                            )
-                        ],
-                        span=12,
-                        lg=5,
+                            dcc.Graph(
+                                id="performance_plot",
+                                figure=blank_fig(),
+                            ),
+                            html.Div(
+                                children=[],
+                                id="performance_table",
+                            ),
+                        ]
                     ),
                 ],
-                gutter="xl",
                 style={
                     "width": "calc(100% - 1px)",
+                    "display": "flex",
+                    "flex-direction": "row",
+                    "align": "center",
+                    "justify-content": "space-around",
+                    "flex-wrap": "wrap",
+                    "gap": "10px",
                 },
             ),
         ],
-        style={
-            "overflow-y": "scroll",
-            "position": "fixed",
-            "padding": "10px",
-            "display": "block",
-            "max-height": "calc(100% - 70px)",
-        },
         fluid=True,
     )
 
 
-@callback(Output("dispersion_plot", "figure"), Input("url", "pathname"))
-def init_graph(path):
+@callback(
+    Output("dispersion_plot", "figure"),
+    Output("dispersion_plot", "selectedData"),
+    Input("url", "pathname"),
+    State("series_store", "data"),
+)
+def init_graph(path, store):
     data = api.get_dispersion_data()
     figure = plotter.make_dispersion_plot(data)
-    return figure
+    if isinstance(store, dict):
+        return figure, store
+
+    return figure, no_update
 
 
 @callback(
@@ -111,20 +111,15 @@ def init_graph(path):
 def display_click_data(selectedData):
     if selectedData is None:
         return blank_fig(), [], no_update, no_update
-
     selection = selectedData.get("points")[0]
     selected_series = selection.get("text")
-    logging.error("Get the series")
     normalised_data, reference_series, number_month = api.get_weighted_series(
         selected_series
     )
 
-    logging.error("Calc cagr")
     cagr, risk = api.calc_CAGR(normalised_data, number_month)
-    logging.error("Get make plot")
     figure = plotter.make_performance_plot(normalised_data, selected_series)
 
-    logging.error("Finished")
     if figure == "error":
         message = dmc.Notification(
             title="There was an error",
@@ -140,4 +135,4 @@ def display_click_data(selectedData):
         cagr, risk, number_month, reference_series, selected_series
     )
     logging.error("Finished2")
-    return figure, table, no_update, selected_series
+    return figure, table, no_update, selectedData
