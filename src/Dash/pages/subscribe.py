@@ -425,11 +425,9 @@ def update_output(
                 "",
                 "",
                 "",
-                "",
             )
     elif button_id == "clear":
             return (
-                "",
                 "",
                 "",
                 "",
