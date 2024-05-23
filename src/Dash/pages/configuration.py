@@ -1,5 +1,5 @@
 import json
-
+import uuid
 import dash_credit_cards as dcs
 import dash_mantine_components as dmc
 from dash import (
@@ -12,6 +12,7 @@ from dash import (
     callback,
     Input,
     Output,
+    State,
 )
 from dash.exceptions import PreventUpdate
 from dash_iconify import DashIconify
@@ -19,7 +20,9 @@ from flask import current_app, session, flash
 from flask_login import logout_user
 
 from src.Dash.services.database import OpenPay
+from src.Dash.services.NotificationProvider import NotificationProvider
 
+notify = NotificationProvider()
 api = OpenPay()
 
 register_page(
@@ -129,12 +132,6 @@ def full_layout(customer_id, subscription, plan, error_message):
                                                     ],
                                                     justify="flex-start",
                                                 ),
-                                                dmc.Text(
-                                                    "",
-                                                    id="account_deleted_message",
-                                                    fw=200,
-                                                    c="red",
-                                                ),
                                             ]
                                         ),
                                     ],
@@ -233,12 +230,6 @@ def full_layout(customer_id, subscription, plan, error_message):
                                         "padding": "12px",
                                     },
                                 ),
-                                dmc.Text(
-                                    "",
-                                    id="credit_card_deleted_message",
-                                    fw=200,
-                                    c="red",
-                                ),
                             ]
                         ),
                     ],
@@ -263,13 +254,13 @@ def full_layout(customer_id, subscription, plan, error_message):
 
 @callback(
     Output("credit_cards_display", "children", allow_duplicate=True),
-    Output("credit_card_deleted_message", "children"),
     Input(
         {"type": "delete_credit_card", "card_id": ALL, "customer_id": ALL}, "n_clicks"
     ),
+    State("dash_websocket", "socketId"),
     prevent_initial_call=True,
 )
-def delete_credit_card_callback(n_clicks_list):
+def delete_credit_card_callback(n_clicks_list, socket_id):
     if not any(n_clicks_list):
         raise PreventUpdate
 
@@ -279,7 +270,13 @@ def delete_credit_card_callback(n_clicks_list):
     if card_id:
         api.cards_data = [card for card in api.cards_data if card.get("id") != card_id]
         if not api.delete_card_from_openpay(triggered_id["customer_id"], card_id):
-            return no_update, "Error: deleting card from OpenPay"
+            notify.send_socket(
+                to=socket_id,
+                type="error",
+                title="Something went wrong",
+                message="We could not delete the credit card. We will check the issue",
+            )
+            return no_update
 
         # Handle the case where there are no subscriptions
         if api.subscription_data and "data" in api.subscription_data:
@@ -348,20 +345,24 @@ def delete_credit_card_callback(n_clicks_list):
                 )
                 for card in api.cards_data
             ]
-            return updated_card_displays, "Card deleted successfully!"
+            notify.send_socket(
+                to=socket_id,
+                type="success",
+                title="Credit Cards update",
+                message="We deleted the credit card",
+            )
+            return updated_card_displays
         else:
-            return [html.Div("No cards available")], ""
+            return [html.Div("No cards available")]
 
 
 @callback(
-    [
-        Output("account_deleted_message", "children", allow_duplicate=True),
-        Output("redirect", "href"),
-    ],
+    Output("redirect", "href"),
     Input("delete_user", "n_clicks"),
+    State("dash_websocket", "socketId"),
     prevent_initial_call=True,
 )
-def delete_user_callback(n_clicks):
+def delete_user_callback(n_clicks, socket_id):
     if n_clicks:
         user_session = session["user"]
         email = user_session.get("email", "")
@@ -369,54 +370,100 @@ def delete_user_callback(n_clicks):
         if openpay_id is None or openpay_id == "":
             return "No OpenPay ID found for the user.", no_update
         # Delete OpenPay account first
+        notification_id = uuid.uuid4().hex
+        notify.send_socket(
+            to=socket_id,
+            type="start_process",
+            title="In process",
+            message="We are deleting all related information. This can take a moment.",
+            id=notification_id,
+        )
         if api.delete_account_from_openpay(openpay_id):
             if api.delete_user(email, openpay_id, True, True, True):
-                logout_user()
-                flash("Account deleted successfully.", "warning")
-                return "Account deleted successfully.", current_app.config["URL_SIGNUP"]
-            else:
-                return (
-                    "Failed to delete user data from the database. Please try again later.",
-                    no_update,
+                notify.send_socket(
+                    to=socket_id,
+                    type="success_process",
+                    title="We deleted your account",
+                    message="All information is deleted",
+                    id=notification_id,
                 )
+                logout_user()
+                return current_app.config["URL_SIGNUP"]
+            else:
+                notify.send_socket(
+                    to=socket_id,
+                    type="error_process",
+                    title="Something wrong at the API",
+                    message="Failed to delete user data from the database. Please try again later.",
+                    id=notification_id,
+                )
+                return no_update
         else:
-            return (
-                "Failed to delete OpenPay account. Please try again later.",
-                no_update,
+            notify.send_socket(
+                to=socket_id,
+                type="error_process",
+                title="Something wrong at the API",
+                message="Failed to delete OpenPay account. Please try again later.",
+                id=notification_id,
             )
+            return no_update
     raise PreventUpdate
 
 
 @callback(
-    Output("account_deleted_message", "children", allow_duplicate=True),
     Output("redirect-trigger", "children"),
     Output("store-account-data", "data"),
     Input("delete_openpay_account", "n_clicks"),
+    State("dash_websocket", "socketId"),
     prevent_initial_call=True,
 )
-def delete_openpay_account_callback(n_clicks):
+def delete_openpay_account_callback(n_clicks, socket_id):
     if n_clicks:
         user_session = session["user"]
         email = user_session.get("email", "")
         openpay_id = user_session.get("openpay_id", "")
         if openpay_id:
+            notification_id = uuid.uuid4().hex
+            notify.send_socket(
+                to=socket_id,
+                type="start_process",
+                title="In process",
+                message="We are deleting all the information related to OpenPay. This can take a moment.",
+                id=notification_id,
+            )
             if api.delete_account_from_openpay(openpay_id):
                 api.delete_user(email, openpay_id, False, True, True)
+                notify.send_socket(
+                    to=socket_id,
+                    type="success_process",
+                    title="Success",
+                    message="All payment related information are deleted",
+                    id=notification_id,
+                )
                 return (
-                    "Openpay account and associated data deleted successfully.",
                     dcc.Location(
                         pathname=current_app.config["URL_CONFIGURATION"], id="redirect"
                     ),
                     {"refresh": True},
                 )
             else:
-                return (
-                    "Failed to delete OpenPay account. Please try again later.",
-                    no_update,
-                    no_update,
+                notify.send_socket(
+                    to=socket_id,
+                    type="error_process",
+                    title="Something wrong at the API",
+                    message="Failed to delete OpenPay account. Please try again later.",
+                    id=notification_id,
                 )
+                return no_update, no_update
         else:
-            return "No OpenPay ID found for the user.", no_update, no_update
+            notify.send_socket(
+                to=socket_id,
+                type="error",
+                title="No information",
+                message="Non of your data is saved at OpenPay",
+                id=notification_id,
+            )
+            return no_update, no_update
     raise PreventUpdate
 
 
@@ -424,7 +471,6 @@ def delete_openpay_account_callback(n_clicks):
     Output("credit_cards_display", "children", allow_duplicate=True),
     Output("subscription_plan", "children"),
     Output("subscription_price", "children"),
-    Output("account_deleted_message", "children", allow_duplicate=True),
     Input("store-account-data", "data"),
     prevent_initial_call=True,
 )
@@ -505,16 +551,7 @@ def refresh_data(store_data):
                 )
                 for card in api.cards_data
             ]
-            return (
-                card_displays,
-                plan_name.plan_price,
-                "Openpay account and associated data deleted successfully.",
-            )
+            return (card_displays, plan_name.plan_price)
         else:
-            return (
-                [html.Div("No cards available")],
-                plan_name,
-                plan_price,
-                "Openpay account and associated data deleted successfully.",
-            )
+            return ([html.Div("No cards available")], plan_name, plan_price)
     raise PreventUpdate

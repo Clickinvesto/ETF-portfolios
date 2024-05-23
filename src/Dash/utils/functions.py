@@ -19,7 +19,7 @@ def get_icon(icon, height=16):
     return DashIconify(icon=icon, height=height)
 
 
-def get_countries():
+def get_countries(dict_output=False):
     working_directory = Path.cwd()
     data_folder = "src/Dash/data"
     file = "countries.csv"
@@ -29,6 +29,9 @@ def get_countries():
         separator=",",
         new_columns=["label", "value"],
     )
+    if dict_output:
+        return [{"label": row[0], "value": row[1]} for row in dataframe.iter_rows()]
+
     mapping = {row[1]: row[0] for row in dataframe.iter_rows()}
     values = {row[1]: row[1] for row in dataframe.iter_rows()}
     return mapping, values

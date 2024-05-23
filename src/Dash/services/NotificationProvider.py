@@ -38,6 +38,8 @@ class NotificationProvider:
                 message=message if message else "Thank you for waiting",
                 color="green",
                 action="update",
+                loading=False,
+                autoClose=3000,
             )
         elif type == "start_process":
             return dmc.Notification(
@@ -61,6 +63,8 @@ class NotificationProvider:
                 ),
                 color="red",
                 action="update",
+                loading=False,
+                autoClose=3000,
             )
 
         elif type == "success":
