@@ -113,6 +113,7 @@ class API(S3Mixin):
 
     def get_series_data(self, series=False, polar=False):
         if polar:
+            print(self.get_data_file("data/" + self.series_file))
             df = pl.read_csv(
                 self.get_data_file("data/" + self.series_file),
                 has_header=True,

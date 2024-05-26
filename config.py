@@ -16,6 +16,7 @@ class Config:
     ADMIN_PASSWORD = "test"
     NO_ADMIN_EMAIL = "no_admin@test.com"
     NO_ADMIN_PASSWORD = "test"
+    FLASK_ADMIN_SWATCH = environ.get("FLASK_ADMIN_SWATCH", "materia")
 
     DATABASE_URL = environ.get("DATABASE_URL")
     # Database
