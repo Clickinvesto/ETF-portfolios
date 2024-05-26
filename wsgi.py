@@ -1,6 +1,6 @@
 import eventlet
 
-# eventlet.monkey_patch(socket=False, select=False, time=False, os=False)
+eventlet.monkey_patch(socket=False, select=False, time=False, os=False)
 
 import sys
 
@@ -31,8 +31,8 @@ load_dotenv(dotenv_path)
 
 app = create_app()
 # socketio = SocketIO(app, async_mode="gevent")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 if __name__ == "__main__":
-    socketio = SocketIO(app)
-    socketio.run(app, debug=True, port=6782)
+    socketio.run(app, debug=True)
     # socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
     # socketio.run(app, port=int(os.getenv("DASHBOARD_PORT", 8051)))
