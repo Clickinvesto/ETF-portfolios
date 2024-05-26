@@ -1,6 +1,6 @@
 import eventlet
 
-eventlet.monkey_patch()
+eventlet.monkey_patch(socket=False, select=False, time=False, os=False)
 
 
 # Patch openpay.util.utf8 function
@@ -29,8 +29,6 @@ load_dotenv(dotenv_path)
 
 app = create_app()
 
-
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 if __name__ == "__main__":
-    # socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
-    socketio = SocketIO(app, async_mode="eventlet")
-    socketio.run(app)
+    socketio.run(app, debug=True)
