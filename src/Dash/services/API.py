@@ -1,6 +1,8 @@
 import json
 import decimal
 import ast
+import logging
+from io import BytesIO
 
 import polars as pl
 from pathlib import Path
@@ -41,8 +43,6 @@ class API(S3Mixin):
         self.cofiguration = data
 
     def load_dispersion_data(self):
-        import logging
-        from io import BytesIO
 
         s3file = self.get_data_file("data/" + self.dispersion_file)
         s3_file_content = s3file.read()
@@ -78,10 +78,11 @@ class API(S3Mixin):
         combination, weights = self.get_series_combination_weights(series)
         df = pd.read_csv(
             self.get_data_file("data/" + self.series_file),
-            sep=";",
+            sep=",",
             header=0,
             decimal=".",
         )
+
         df["Date (month)"] = pd.to_datetime(df["Date (month)"], format="%m/%d/%Y")
         df.set_index("Date (month)", inplace=True)
 
@@ -112,27 +113,24 @@ class API(S3Mixin):
         return data, reference_series, len(data)
 
     def get_series_data(self, series=False, polar=False):
-        if polar:
-            print(self.get_data_file("data/" + self.series_file))
-            df = pl.read_csv(
-                self.get_data_file("data/" + self.series_file),
-                has_header=True,
-                separator=";",
-            )
-            columns_to_cast = df.columns[1:]
-            df = df.with_columns(
-                [
-                    pl.col(column).cast(pl.Float64).alias(column)
-                    for column in columns_to_cast
-                ]
-            )
-            return df
         df = pd.read_csv(
             self.get_data_file("data/" + self.series_file),
-            sep=";",
+            sep=",",
             header=0,
             decimal=".",
         )
+        if polar:
+            polars_df = pl.from_pandas(df)
+            # columns_to_cast = polars_df.columns[1:]
+            # print(columns_to_cast)
+            # polars_df = polars_df.with_columns(
+            #    [
+            #        pl.col(column).cast(pl.Float64).alias(column)
+            #        for column in columns_to_cast
+            #    ]
+            # )
+            return polars_df
+
         df["Date (month)"] = pd.to_datetime(df["Date (month)"], format="%m/%d/%Y")
         df.set_index("Date (month)", inplace=True)
         return df
@@ -157,14 +155,32 @@ class API(S3Mixin):
 
 
 class CalculateCombinations(API):
+    def calc_metrics_pandas(self, portfolio):
+        # Calculate the number of months
+        number_of_months = len(portfolio)
+
+        # Calculate the CAGR (Compound Annual Growth Rate)
+        temp = portfolio.iloc[-1] / 100
+        cagr = (temp ** (12 / number_of_months) - 1) * 100
+
+        # Calculate the risk
+        risk = portfolio / portfolio.shift(1)
+        risk = risk.dropna()  # Drop NaN values that result from shifting
+        risk_below_one = risk[risk < 1.0]
+        risk_count = len(risk_below_one)
+        risk_percentage = (risk_count / number_of_months) * 100
+
+        return cagr, risk_percentage
 
     def calc_metrics_polars(self, portfolio):
         number_of_month = portfolio.height
+        print(number_of_month)
         temp = portfolio.select(pl.last("sum")) / 100
         cagr = temp.item(0, 0) ** (12 / number_of_month) - 1
         cagr *= 100
 
         risk = portfolio / portfolio.shift(1)
+        print(risk)
         risk = (
             risk.select("sum")
             .filter(pl.col("sum").is_not_null())

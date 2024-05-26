@@ -236,16 +236,14 @@ def first_non_null_index(col):
     manager=long_callback_manager,
     progress=[Output("progress_bar", "value"), Output("progress_bar", "label")],
     progress_default=(0, f"{0}%"),
-    interval=1000,
+    interval=100,
 )
 def callback(set_progress, n_clicks, interval_size, partitions, top_x):
     if ctx.triggered_id is None:
         raise PreventUpdate
 
-    print("test")
     start_time = time.time()
-    df = api.get_series_data(polar=True)
-    print(df)
+    df = api.get_series_data()
     # First remove the date column from the list
     column_names = df.columns
     column_names = column_names[2:]
@@ -257,9 +255,8 @@ def callback(set_progress, n_clicks, interval_size, partitions, top_x):
     if os.path.exists(file_name):
         # Delete the file
         os.remove(file_name)
-        print("File deleted.")
     else:
-        print("File does not exist.")
+        pass
     total_number = get_number_of_portfolios(column_names, partitions, interval_size)
 
     # Iterate over each combination and preccacluate the valid weights, exclude the first value which is RI
@@ -268,14 +265,11 @@ def callback(set_progress, n_clicks, interval_size, partitions, top_x):
     header_written = False
 
     # Calculate RI
-    normalised_df = (
-        df.select(["RI"])
-        .filter(pl.col("RI").is_not_null())
-        .with_columns((pl.col("RI") / pl.col("RI").first() * 100))
-    )
-    cagr, risk = api.calc_metrics_polars(
-        normalised_df.select(pl.col("RI").alias("sum"))
-    )
+    df["RI"] = pd.to_numeric(df["RI"], errors="coerce")  # Ensure RI is numeric
+    normalised_df = df[["RI"]].dropna()
+    normalised_df["sum"] = (normalised_df["RI"] / normalised_df["RI"].iloc[0]) * 100
+
+    cagr, risk = api.calc_metrics_pandas(normalised_df["sum"])
     combination_params = {
         "name": f"RI",
         "combination": str(("RI",)),
@@ -287,46 +281,39 @@ def callback(set_progress, n_clicks, interval_size, partitions, top_x):
         "cagr": cagr,
         "risk": risk,
     }
-    combination_params_df = pl.DataFrame([combination_params])
+    combination_params_df = pd.DataFrame([combination_params])
     try:
         with open(file_name, "x") as f:
-            combination_params_df.write_csv(f)
+            combination_params_df.to_csv(f, index=False)
     except FileExistsError:
         # File already exists, append without header
         with open(file_name, "a") as f:
-            combination_params_df.write_csv(f, has_header=False)
+            combination_params_df.to_csv(f, index=False, header=False)
 
-    for partition in range(0, partitions):
-        partition += 1
+    for partition in range(1, partitions + 1):
         for combination in itertools.combinations(column_names, partition):
             pre_computed_weights = get_valid_weights(
                 partition, interval_size, get_weights=True
             )
-            filter_condition = pl.col(combination[0]).is_not_null()
-            for column in combination[1:]:
-                filter_condition = filter_condition & pl.col(column).is_not_null()
+            # Filter non-null values for the combination of columns
+            filtered_df = df.dropna(subset=combination)
 
-            normalised_df = (
-                df.select(list(combination))
-                .filter(filter_condition)
-                .with_columns(
-                    [
-                        (pl.col(column) / pl.col(column).first() * 100)
-                        for column in combination
-                    ]
-                )
-            )
+            # Normalize the columns
+            for column in combination:
+                filtered_df[column] = (
+                    filtered_df[column] / filtered_df[column].iloc[0]
+                ) * 100
+
             for weight_comb in pre_computed_weights:
                 # Calcuclate Portfolio
-                weighted_df = normalised_df.with_columns(
-                    [
-                        (pl.col(column) * float(weight_comb[i]))
-                        for i, column in enumerate(combination)
-                    ]
-                )
-                portfolio = weighted_df.with_columns(sum=pl.sum_horizontal(combination))
-                # Calculate values
-                cagr, risk = api.calc_metrics_polars(portfolio.select("sum"))
+                weighted_df = filtered_df.copy()
+                for i, column in enumerate(combination):
+                    weighted_df[column] = weighted_df[column] * float(weight_comb[i])
+
+                weighted_df["sum"] = weighted_df[list(combination)].sum(axis=1)
+
+                cagr, risk = api.calc_metrics_pandas(weighted_df["sum"])
+
                 combination_params = {
                     "name": f"x{index}",
                     "combination": str(combination),
@@ -334,14 +321,16 @@ def callback(set_progress, n_clicks, interval_size, partitions, top_x):
                     "cagr": cagr,
                     "risk": risk,
                 }
-                combination_params_df = pl.DataFrame([combination_params])
+
+                combination_params_df = pd.DataFrame([combination_params])
                 try:
                     with open(file_name, "x") as f:
-                        combination_params_df.write_csv(f)
+                        combination_params_df.to_csv(f, index=False)
+
                 except FileExistsError:
                     # File already exists, append without header
                     with open(file_name, "a") as f:
-                        combination_params_df.write_csv(f, has_header=False)
+                        combination_params_df.to_csv(f, index=False, header=False)
 
                 new_percentage = int((index - 1) / total_number * 100)
                 if new_percentage != percentage:
