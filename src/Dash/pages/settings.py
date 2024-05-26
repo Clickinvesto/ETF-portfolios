@@ -1,5 +1,6 @@
 import dash_mantine_components as dmc
 import dash
+import os
 import polars as pl
 from pathlib import Path
 from dash import (
@@ -127,7 +128,7 @@ def full_layout():
     return dmc.Container(
         [
             dmc.Title("Weight Calculation", order=2),
-            dmc.Grid(
+            dmc.Flex(
                 dmc.Paper(
                     [
                         dmc.Group(
@@ -149,12 +150,12 @@ def full_layout():
                                     max=1,
                                     min=0,
                                     step=0.01,
-                                    precision=6,
+                                    decimalScale=6,
                                     style={"width": 200},
                                     id="step_size",
                                 ),
                                 dmc.NumberInput(
-                                    label="Limit the result to the top X regardin CARG",
+                                    label="Limit the result to the top X regarding CARG",
                                     description="Default is 2000",
                                     value=2000,
                                     max=5000,
@@ -175,7 +176,7 @@ def full_layout():
                         dmc.Text(id="total_number_portfolio"),
                         dmc.Space(h=20),
                         dmc.Progress(
-                            animate=True,
+                            value=0,
                             id="progress_bar",
                             size="xl",
                         ),
@@ -183,19 +184,17 @@ def full_layout():
                         dmc.Text(id="calculation_time"),
                     ]
                 ),
-                gutter="xl",
                 style={
-                    "width": "calc(100% - 1px)",
+                    "width": "inherit",
+                    "display": "flex",
+                    "flex-direction": "row",
+                    "align": "center",
+                    "justify-content": "space-around",
+                    "flex-wrap": "wrap",
+                    "gap": "10px",
                 },
             ),
         ],
-        style={
-            "overflow-y": "scroll",
-            "position": "fixed",
-            "padding": "10px",
-            "display": "block",
-            "max-height": "calc(100% - 70px)",
-        },
         fluid=True,
     )
 
@@ -242,8 +241,11 @@ def first_non_null_index(col):
 def callback(set_progress, n_clicks, interval_size, partitions, top_x):
     if ctx.triggered_id is None:
         raise PreventUpdate
+
+    print("test")
     start_time = time.time()
     df = api.get_series_data(polar=True)
+    print(df)
     # First remove the date column from the list
     column_names = df.columns
     column_names = column_names[2:]
@@ -251,6 +253,13 @@ def callback(set_progress, n_clicks, interval_size, partitions, top_x):
     current_directory = Path.cwd() / "src/Dash/data"
     file_name = current_directory / "new_result.csv"
     filtered_path = current_directory / "check.csv"
+    # Check if the file exists
+    if os.path.exists(file_name):
+        # Delete the file
+        os.remove(file_name)
+        print("File deleted.")
+    else:
+        print("File does not exist.")
     total_number = get_number_of_portfolios(column_names, partitions, interval_size)
 
     # Iterate over each combination and preccacluate the valid weights, exclude the first value which is RI

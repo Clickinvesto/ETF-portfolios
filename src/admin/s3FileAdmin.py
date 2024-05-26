@@ -174,7 +174,6 @@ class S3Storage(object):
         )
 
     def delete_file(self, file_path):
-        print(file_path)
         obj = self.bucket.Object(file_path)
         obj.delete()
 
