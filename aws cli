@@ -1,0 +1,3 @@
+aws s3 ls s3://bucketeer-b93e8227-d3c9-44a1-970a-d6aa2b05aa7c/ --recursive 
+
+aws s3 cp /home/simon/Documents/Pure_Inference/Kunden/Andres/dashboard/src/Dash/data s3://bucketeer-b93e8227-d3c9-44a1-970a-d6aa2b05aa7c/ --recursive
