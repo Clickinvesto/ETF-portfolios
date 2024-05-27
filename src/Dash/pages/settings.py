@@ -1,7 +1,9 @@
 import dash_mantine_components as dmc
 import dash
 import os
-import polars as pl
+import uuid
+import base64
+from io import BytesIO
 from pathlib import Path
 from dash import (
     register_page,
@@ -28,9 +30,13 @@ from itertools import combinations, product
 from flask import session, redirect
 from src.Dash.services.API import CalculateCombinations
 from src.Dash.services.graph import plotting_engine
-
+from src.Dash.utils.functions import get_icon
+from src.Dash.components.checklist import create_check_list
 from dash.long_callback import DiskcacheLongCallbackManager
+from src.Dash.services.NotificationProvider import NotificationProvider
 import diskcache
+
+notify = NotificationProvider()
 
 cache = diskcache.Cache("./cache")
 long_callback_manager = DiskcacheLongCallbackManager(cache)
@@ -116,7 +122,6 @@ def generate_portfolios(column_names, weight_combinations):
 def layout(socket_ids=None, **kwargs):
     if socket_ids == None:
         raise PreventUpdate
-    # ToDo in the future we can add other information here as well for example from the user
     user = session.get("user", False)
     if not user:
         return dmc.Container()
@@ -129,61 +134,107 @@ def full_layout():
         [
             dmc.Title("Weight Calculation", order=2),
             dmc.Flex(
-                dmc.Paper(
-                    [
-                        dmc.Group(
-                            [
-                                dmc.NumberInput(
-                                    label="Portfolio Partitions",
-                                    description="Default is 4",
-                                    value=4,
-                                    max=10,
-                                    min=1,
-                                    step=1,
-                                    style={"width": 200},
-                                    id="partitions",
+                [
+                    dmc.Paper(
+                        [
+                            dmc.Group(
+                                [
+                                    dcc.Upload(
+                                        id="csv_upload",
+                                        children=html.Div(
+                                            [
+                                                "Drag and Drop or ",
+                                                html.A("Select Files"),
+                                            ]
+                                        ),
+                                        style={
+                                            "width": "400px",
+                                            "height": "60px",
+                                            "lineHeight": "60px",
+                                            "borderWidth": "1px",
+                                            "borderStyle": "dashed",
+                                            "borderRadius": "5px",
+                                            "textAlign": "center",
+                                            "margin": "10px",
+                                        },
+                                        multiple=False,
+                                    ),
+                                    dmc.Button(
+                                        "Save file", id="save_file", disabled=True
+                                    ),
+                                ]
+                            ),
+                            dmc.List(
+                                icon=dmc.ThemeIcon(
+                                    get_icon(
+                                        icon="radix-icons:check-circled", height=16
+                                    ),
+                                    radius="xl",
+                                    color="green",
+                                    size=24,
                                 ),
-                                dmc.NumberInput(
-                                    label="Step size of distribution",
-                                    description="Default is 0.2 and recommended",
-                                    value=0.2,
-                                    max=1,
-                                    min=0,
-                                    step=0.01,
-                                    decimalScale=6,
-                                    style={"width": 200},
-                                    id="step_size",
-                                ),
-                                dmc.NumberInput(
-                                    label="Limit the result to the top X regarding CARG",
-                                    description="Default is 2000",
-                                    value=2000,
-                                    max=5000,
-                                    min=100,
-                                    step=100,
-                                    style={"width": 200},
-                                    id="top_x",
-                                ),
-                                dmc.Button("Run calibration", id="run_calibration"),
-                                dmc.Button(
-                                    "Cancle Calibration",
-                                    id="cancle_calibration",
-                                    disabled=True,
-                                ),
-                            ]
-                        ),
-                        dmc.Space(h=20),
-                        dmc.Text(id="total_number_portfolio"),
-                        dmc.Space(h=20),
-                        dmc.Progress(
-                            value=0,
-                            id="progress_bar",
-                            size="xl",
-                        ),
-                        dmc.Space(h=20),
-                        dmc.Text(id="calculation_time"),
-                    ]
-                ),
+                                size="sm",
+                                spacing="sm",
+                                id="check_list",
+                            ),
+                        ]
+                    ),
+                    dmc.Paper(
+                        [
+                            dmc.Group(
+                                [
+                                    dmc.NumberInput(
+                                        label="Portfolio Partitions",
+                                        description="Default is 4",
+                                        value=4,
+                                        max=10,
+                                        min=1,
+                                        step=1,
+                                        style={"width": 200},
+                                        id="partitions",
+                                    ),
+                                    dmc.NumberInput(
+                                        label="Step size of distribution",
+                                        description="Default is 0.2 and recommended",
+                                        value=0.2,
+                                        max=1,
+                                        min=0,
+                                        step=0.01,
+                                        decimalScale=6,
+                                        style={"width": 200},
+                                        id="step_size",
+                                    ),
+                                    dmc.NumberInput(
+                                        label="Limit the result to the top X regarding CARG",
+                                        description="Default is 2000",
+                                        value=2000,
+                                        max=5000,
+                                        min=100,
+                                        step=100,
+                                        style={"width": 200},
+                                        id="top_x",
+                                    ),
+                                    dmc.Button("Run calibration", id="run_calibration"),
+                                    dmc.Button(
+                                        "Cancle Calibration",
+                                        id="cancle_calibration",
+                                        disabled=True,
+                                    ),
+                                ]
+                            ),
+                            dmc.Space(h=20),
+                            dmc.Text(id="total_number_portfolio"),
+                            dmc.Space(h=20),
+                            dmc.Progress(
+                                value=0,
+                                id="progress_bar",
+                                size="xl",
+                            ),
+                            dmc.Space(h=20),
+                            dmc.Text(id="calculation_time"),
+                        ]
+                    ),
+                ],
                 style={
                     "width": "inherit",
                     "display": "flex",
@@ -197,6 +248,66 @@ def full_layout():
         ],
         fluid=True,
     )
+
+
+@callback(
+    Output("check_list", "children", allow_duplicate=True),
+    Output("save_file", "disabled"),
+    Input("csv_upload", "contents"),
+    State("csv_upload", "filename"),
+    prevent_initial_call=True,
+)
+def update_output(content, name):
+    content_type, content_string = content.split(",")
+    disable_save, check_list = create_check_list(name, content_string)
+    return check_list, disable_save
+
+
+@callback(
+    Output("check_list", "children", allow_duplicate=True),
+    Output("save_file", "disabled", allow_duplicate=True),
+    Input("save_file", "n_clicks"),
+    Input("csv_upload", "contents"),
+    State("csv_upload", "filename"),
+    State("dash_websocket", "socketId"),
+    prevent_initial_call=True,
+)
+def upload_upload(trigger, content, name, socket_id):
+    if trigger:
+        notification_id = uuid.uuid4().hex
+        notify.send_socket(
+            to=socket_id,
+            type="start_process",
+            title="Uploading the file to S3",
+            message="Please wait a moment, we are uploading the file",
+            id=notification_id,
+        )
+
+        content_type, content_string = content.split(",")
+        decoded_content = base64.b64decode(content_string)
+        file_like_object = BytesIO(decoded_content)
+
+        status = api.upload_file(file_like_object, name)
+        if status:
+            notify.send_socket(
+                to=socket_id,
+                type="success_process",
+                title="Upload finished",
+                message="You can progress with the calculation",
+                id=notification_id,
+            )
+            return [], True
+
+        notify.send_socket(
+            to=socket_id,
+            type="error_process",
+            title="Something went wrong",
+            message="Somethign went wrong while uploading",
+            id=notification_id,
+        )
+
+        raise PreventUpdate
+    raise PreventUpdate
 
 
 @callback(

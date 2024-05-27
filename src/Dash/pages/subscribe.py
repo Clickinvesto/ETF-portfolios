@@ -369,7 +369,7 @@ def update_output(
         )
 
         # an error occur while making an api calls
-        if api_error is not None:
+        if api_error is None:
             notify.send_socket(
                 to=socket_id,
                 type="error_process",
@@ -448,6 +448,8 @@ def update_output(
                 "",
                 "",
             )
+
+        #
 
 
 clientside_callback(
