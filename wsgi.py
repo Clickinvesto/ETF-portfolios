@@ -1,6 +1,6 @@
 import eventlet
 
-eventlet.monkey_patch(socket=False, select=False, time=False, os=False)
+eventlet.monkey_patch()
 
 
 # Patch openpay.util.utf8 function

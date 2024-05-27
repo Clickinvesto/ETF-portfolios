@@ -23,6 +23,20 @@ def format_date(input_date, input_format="%Y-%m-%d", return_format="%Y-%m-%d %H:
 
 
 class S3Mixin:
+
+    def upload_file(self, file_object, name):
+        s3_client = current_app.config["S3_CLIENT"]
+        bucket_name = current_app.config["S3_BUCKET"]
+        bucket = s3_client.Bucket(bucket_name)
+        try:
+            bucket.upload_fileobj(
+                file_object,
+                name,
+            )
+            return True
+        except:
+            return False
+
     def get_data_file(self, path):
         data_file = (
             current_app.config["S3_CLIENT"]
