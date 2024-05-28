@@ -28,8 +28,10 @@ def is_utf8(content_string):
     except:
         return False
 
+        # ("Date (month)")
 
-def check_column_header(potential_file, position=0, expected_header="Date (month)"):
+
+def check_column_header(potential_file, position=0, expected_header="Date"):
     try:
         potential_file.seek(0)
         reader = csv.reader(potential_file)
@@ -59,7 +61,7 @@ def create_check_list(file_name, file_content):
         "The file is a csv",
         "The file is saved in UTF-8",
         "The csv is delimiter is , (comma)",
-        "The first column is named: Date (month)",
+        "The first column is named: Date",
         "The second column is named: RI",
     ]
     disable_upload = any(value is False for value in tests)

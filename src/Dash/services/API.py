@@ -83,8 +83,8 @@ class API(S3Mixin):
             decimal=".",
         )
 
-        df["Date (month)"] = pd.to_datetime(df["Date (month)"], format="%m/%d/%Y")
-        df.set_index("Date (month)", inplace=True)
+        df["Date"] = pd.to_datetime(df["Date"], format="%m/%d/%Y")
+        df.set_index("Date", inplace=True)
 
         highest_valid_index = max(df[col].first_valid_index() for col in combination)
         normalized_series = pd.DataFrame(
@@ -131,8 +131,8 @@ class API(S3Mixin):
             # )
             return polars_df
 
-        df["Date (month)"] = pd.to_datetime(df["Date (month)"], format="%m/%d/%Y")
-        df.set_index("Date (month)", inplace=True)
+        df["Date"] = pd.to_datetime(df["Date"], format="%m/%d/%Y")
+        df.set_index("Date", inplace=True)
         return df
 
     def calc_CAGR(self, normalised_data, number_of_month=False):
@@ -174,13 +174,11 @@ class CalculateCombinations(API):
 
     def calc_metrics_polars(self, portfolio):
         number_of_month = portfolio.height
-        print(number_of_month)
         temp = portfolio.select(pl.last("sum")) / 100
         cagr = temp.item(0, 0) ** (12 / number_of_month) - 1
         cagr *= 100
 
         risk = portfolio / portfolio.shift(1)
-        print(risk)
         risk = (
             risk.select("sum")
             .filter(pl.col("sum").is_not_null())
