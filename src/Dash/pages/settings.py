@@ -287,6 +287,7 @@ def upload_upload(trigger, content, name, socket_id):
         decoded_content = base64.b64decode(content_string)
         file_like_object = BytesIO(decoded_content)
 
+        name = "data/" + name
         status = api.upload_file(file_like_object, name)
         if status:
             notify.send_socket(
@@ -302,7 +303,7 @@ def upload_upload(trigger, content, name, socket_id):
             to=socket_id,
             type="error_process",
             title="Something went wrong",
-            message="Somethign went wrong while uploading",
+            message="Something went wrong while uploading",
             id=notification_id,
         )
 

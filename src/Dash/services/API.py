@@ -83,7 +83,13 @@ class API(S3Mixin):
             decimal=".",
         )
 
-        df["Date"] = pd.to_datetime(df["Date"], format="%m/%d/%Y")
+        format_list = ["%m/%d/%Y", "%d/%m/%y", "%Y-%m-%d"]
+        for format_type in format_list:
+            try:
+                df["Date"] = pd.to_datetime(df["Date"], format=format_type)
+            except ValueError:
+                continue
+
         df.set_index("Date", inplace=True)
 
         highest_valid_index = max(df[col].first_valid_index() for col in combination)
@@ -131,7 +137,12 @@ class API(S3Mixin):
             # )
             return polars_df
 
-        df["Date"] = pd.to_datetime(df["Date"], format="%m/%d/%Y")
+        format_list = ["%m/%d/%Y", "%d/%m/%y", "%Y-%m-%d"]
+        for format_type in format_list:
+            try:
+                df["Date"] = pd.to_datetime(df["Date"], format=format_type)
+            except ValueError:
+                continue
         df.set_index("Date", inplace=True)
         return df
 
