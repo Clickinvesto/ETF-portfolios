@@ -1,4 +1,5 @@
 import json
+import datetime
 import pandas as pd
 import polars as pl
 from dash_iconify import DashIconify
@@ -13,6 +14,16 @@ def get_config(sub_dict):
     f = open(graph_path)
     data = json.load(f)
     return data.get(sub_dict)
+
+
+def get_date_formatted(date):
+    formats = ["%m/%d/%Y", "%d/%m/%y", "%Y-%m-%d"]
+    for fmt in formats:
+        try:
+            return datetime.strptime(date, fmt)
+        except ValueError:
+            continue
+    return None
 
 
 def get_icon(icon, height=16):

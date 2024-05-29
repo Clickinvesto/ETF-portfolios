@@ -403,9 +403,12 @@ def delete_credit_card_callback(n_clicks_list, socket_id):
                 )
                 for card in api.cards_data
             ]
-            return updated_card_displays
-        else:
-            return [html.Div("No cards available")]
+            notify.send_socket(
+                to=socket_id,
+                type="success",
+                title="Credit Cards update",
+                message="We deleted the credit card",
+            )
 
 
 @callback(
@@ -434,6 +437,13 @@ def delete_user_callback(n_clicks, socket_id):
         )
         if api.delete_account_from_openpay(openpay_id):
             if api.delete_user(email, openpay_id, True, True, True):
+                notify.send_socket(
+                    to=socket_id,
+                    type="success_process",
+                    title="We deleted your account",
+                    message="All information is deleted",
+                    id=notification_id,
+                )
                 logout_user()
                 flash("Account deleted successfully.", "warning")
                 return [current_app.config["URL_SIGNUP"]]

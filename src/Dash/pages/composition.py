@@ -35,7 +35,6 @@ page_name = "compostion"
 
 
 def layout(socket_ids=None, **kwargs):
-    print(socket_ids)
     if socket_ids == None:
         raise PreventUpdate
     # This page requires the user to subscripe. So first check if the user is logged in.

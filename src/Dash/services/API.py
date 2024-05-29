@@ -83,8 +83,8 @@ class API(S3Mixin):
             decimal=".",
         )
 
-        df["Date (month)"] = pd.to_datetime(df["Date (month)"], format="%m/%d/%Y")
-        df.set_index("Date (month)", inplace=True)
+        df["Date"] = pd.to_datetime(df["Date"], format="%d/%m/%Y")
+        df.set_index("Date", inplace=True)
 
         highest_valid_index = max(df[col].first_valid_index() for col in combination)
         normalized_series = pd.DataFrame(
@@ -99,7 +99,6 @@ class API(S3Mixin):
             }
         )
         combined_series = normalized_series.sum(axis=1)
-
         data = pd.concat(
             [
                 df.loc[normalized_series.index, reference_series]
@@ -131,8 +130,9 @@ class API(S3Mixin):
             # )
             return polars_df
 
-        df["Date (month)"] = pd.to_datetime(df["Date (month)"], format="%m/%d/%Y")
-        df.set_index("Date (month)", inplace=True)
+        df["Date"] = pd.to_datetime(df["Date"], format="%d/%m/%Y")
+        df.set_index("Date", inplace=True)
+
         return df
 
     def calc_CAGR(self, normalised_data, number_of_month=False):

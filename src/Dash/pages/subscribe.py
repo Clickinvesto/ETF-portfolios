@@ -143,7 +143,6 @@ def full_layout(user=False):
                 justify="center",
             ),
             dmc.Space(h=10),
-            # html.P(id="error_element", style={"color": "red"}),
             dmc.Space(h=5),
             dmc.Group(
                 [
@@ -240,7 +239,7 @@ def update_credit_card(first_name, last_name, card_input, expiry, cvc, socketid)
 
 
 @callback(
-    Output("subscription_modal", "opened"),
+    Output("error_element", "children"),
     Output("first_name_form", "value"),
     Output("last_name_form", "value"),
     Output("credit_card_input", "cardNumber"),
@@ -319,7 +318,7 @@ def update_output(
                 message="Please check your input",
             )
             return (
-                no_update,
+                error_message,
                 no_update,
                 no_update,
                 no_update,
@@ -343,6 +342,7 @@ def update_output(
         user_session = session["user"]
         openpay_id = user_session.get("openpay_id", "")
         api.fetch_customer(openpay_id)
+        email = user_session.get("email", "")
         notification_id = uuid.uuid4().hex
         notify.send_socket(
             to=socket_id,
@@ -378,7 +378,7 @@ def update_output(
                 id=notification_id,
             )
             return (
-                no_update,
+                api_error,
                 no_update,
                 no_update,
                 no_update,
@@ -426,7 +426,7 @@ def update_output(
                 "",
                 "",
             )
-    elif button_id == "clear":
+        elif button_id == "clear":
             return (
                 "",
                 "",
