@@ -27,6 +27,7 @@ def make_header():
                 refresh=True,
             )
         )
+        avatar = dmc.Avatar(radius="xl", color="green")
 
     if not user:
         links.append(
@@ -37,6 +38,7 @@ def make_header():
                 refresh=True,
             )
         )
+        avatar = dmc.Avatar(radius="xl")
     return dmc.Group(
         [
             dmc.Group(
@@ -47,9 +49,7 @@ def make_header():
             ),
             dmc.Menu(
                 [
-                    dmc.MenuTarget(
-                        dmc.Avatar(radius="xl"),
-                    ),
+                    dmc.MenuTarget(avatar),
                     dmc.MenuDropdown(links),
                 ]
             ),

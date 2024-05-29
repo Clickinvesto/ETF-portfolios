@@ -20,11 +20,11 @@ from src import login_manager
 from src.models import User, db
 from .forms import LoginForm, SignupForm, ResetPasswordForm
 from .. import mail
-from src.Dash.services.database import OpenPay
+from src.Dash.services.database import PaymentGatway
 from src.Dash.services.NotificationProvider import NotificationProvider
 
 notify = NotificationProvider()
-api = OpenPay()
+api = PaymentGatway()
 
 # Register auth_bp as blueprint
 auth_bp = Blueprint(
@@ -77,6 +77,7 @@ def login():
     if current_user.is_authenticated:
         # Log the new last login
         current_user.last_login = datetime.datetime.now()
+
         db.session.commit()
         # Bring the user to the page he wanted to after lgin
         if "url" in session:
@@ -121,10 +122,21 @@ def login():
             # Login User and store last login
             login_user(user)
             user.last_login = datetime.datetime.now()
+            result = api.fetch_active_subscription(
+                user.__dict__.get("openpay_id", None)
+            )
+            # On log in we check if the user have an active subscription
             user_dict = {
                 key: user.__dict__[key]
                 for key in ["id", "email", "is_admin", "subscription", "openpay_id"]
             }
+            if not result["item"]:
+                user.subscription = None
+                user_dict["subscription"] = None
+            else:
+                # PRocess active subscription
+                print(result["item"])
+
             db.session.commit()
             session["user"] = user_dict
             # Redirect the user to the right page, depending if admin or not
@@ -186,7 +198,7 @@ def signup():
                 {
                     "email_address": user.email,
                     "exp": datetime.datetime.now(tz=datetime.timezone.utc)
-                           + datetime.timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
+                    + datetime.timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
                 },
                 current_app.config["SECRET_KEY"],
                 algorithm="HS256",
@@ -243,7 +255,7 @@ def resent_email():
             {
                 "email_address": existing_user.email,
                 "exp": datetime.datetime.now(tz=datetime.timezone.utc)
-                       + datetime.timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
+                + datetime.timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
             },
             current_app.config["SECRET_KEY"],
             algorithm="HS256",
@@ -318,7 +330,7 @@ def reset_password():
             {
                 "email_address": email,
                 "exp": datetime.datetime.now(tz=datetime.timezone.utc)
-                       + datetime.timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
+                + datetime.timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
             },
             current_app.config["SECRET_KEY"],
             algorithm="HS256",

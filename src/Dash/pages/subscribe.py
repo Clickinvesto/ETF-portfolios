@@ -18,7 +18,7 @@ from dash import (
 )
 from dash.exceptions import PreventUpdate
 from dash_iconify import DashIconify
-from src.Dash.services.database import OpenPay
+from src.Dash.services.database import PaymentGatway
 from src.Dash.utils.functions import get_countries
 from flask import session, current_app
 from src.Dash.services.NotificationProvider import NotificationProvider
@@ -27,7 +27,7 @@ from dash_pydantic_form import FormSection, ModelForm, Sections, fields, ids
 from pydantic import BaseModel, Field, ValidationError
 
 notify = NotificationProvider()
-api = OpenPay()
+api = PaymentGatway()
 
 register_page(__name__, name="Pricing", path=current_app.config["URL_SUBSCRIBTION"])
 
@@ -239,7 +239,6 @@ def update_credit_card(first_name, last_name, card_input, expiry, cvc, socketid)
 
 
 @callback(
-    Output("error_element", "children"),
     Output("first_name_form", "value"),
     Output("last_name_form", "value"),
     Output("credit_card_input", "cardNumber"),
@@ -310,39 +309,14 @@ def update_output(
             state,
         )
 
-        if error_message is not None:
+        if not error_message is None:
             notify.send_socket(
                 to=socket_id,
                 type="error",
                 title="Wrong input",
                 message="Please check your input",
             )
-            return (
-                error_message,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-            )
-
-        user_session = session["user"]
-        openpay_id = user_session.get("openpay_id", "")
-        api.fetch_customer(openpay_id)
-        email = user_session.get("email", "")
+            raise PreventUpdate
         notification_id = uuid.uuid4().hex
         notify.send_socket(
             to=socket_id,
@@ -351,8 +325,35 @@ def update_output(
             message="We check the credit card and add the subscription. Please wait a moment.",
             id=notification_id,
         )
-        subscription, api_error = api.create_customer_subscription(
-            api.customer,
+        user_session = session["user"]
+        openpay_id = user_session.get("openpay_id", None)
+
+        if openpay_id is None:
+            # User still has no open pay account
+            result = api.create_openpay_customer(user_session["email"])
+            customer = result["item"]
+            openpay_id = customer.id
+            user_session["openpay_id"] = openpay_id
+
+        result = api.fetch_active_subscription(openpay_id)
+        active_subscription = result["item"]
+        if active_subscription:
+            # The user already has an active subscription
+            notify.send_socket(
+                to=socket_id,
+                id=notification_id,
+                type="success_process",
+                title="Subscription",
+                message="You already have a valid subscription",
+            )
+            raise PreventUpdate
+
+        result = api.fetch_customer(openpay_id)
+        customer = result["item"]
+        email = user_session.get("email", "")
+
+        result = api.create_customer_subscription(
+            customer,
             first_name,
             last_name,
             "None",
@@ -367,87 +368,70 @@ def update_output(
             line3,
             state,
         )
-
         # an error occur while making an api calls
-        if api_error is None:
+        if result["error"]:
+            session["user"] = user_session
             notify.send_socket(
                 to=socket_id,
                 type="error_process",
-                title="Something wrong at the API",
-                message="We could not process your request. Check the credit card and try again.",
+                title="Are your informations correct?",
+                message=result["error"],
                 id=notification_id,
             )
-            return (
-                api_error,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-            )
-        # All api calls are successful
-        if subscription is not None:
-            notify.send_socket(
-                to=socket_id,
-                type="success_process",
-                title="Success",
-                message="Thank you for subscribing to our service!",
-                id=notification_id,
-            )
-            return (
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-            )
-        elif button_id == "clear":
-            return (
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-            )
+            raise PreventUpdate
 
-        #
+        user_session["subscription"] = "active"
+        session["user"] = user_session
+        notify.send_socket(
+            to=socket_id,
+            type="success_process",
+            title="Success",
+            message="Thank you for subscribing to our service!",
+            id=notification_id,
+        )
+        return (
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+        )
+    elif button_id == "clear":
+        return (
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+        )
+
+    raise PreventUpdate
 
 
 clientside_callback(
