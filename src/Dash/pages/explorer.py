@@ -138,5 +138,4 @@ def display_click_data(selectedData):
     table = make_cagr_risk_table(
         cagr, risk, number_month, reference_series, selected_series
     )
-    logging.error("Finished2")
     return figure, table, no_update, selectedData

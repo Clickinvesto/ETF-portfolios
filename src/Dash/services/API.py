@@ -82,14 +82,7 @@ class API(S3Mixin):
             header=0,
             decimal=".",
         )
-
-        format_list = ["%m/%d/%Y", "%d/%m/%y", "%Y-%m-%d"]
-        for format_type in format_list:
-            try:
-                df["Date"] = pd.to_datetime(df["Date"], format=format_type)
-            except ValueError:
-                continue
-
+        df["Date"] = pd.to_datetime(df["Date"], format="%d/%m/%Y")
         df.set_index("Date", inplace=True)
 
         highest_valid_index = max(df[col].first_valid_index() for col in combination)
@@ -105,7 +98,6 @@ class API(S3Mixin):
             }
         )
         combined_series = normalized_series.sum(axis=1)
-
         data = pd.concat(
             [
                 df.loc[normalized_series.index, reference_series]
@@ -143,6 +135,8 @@ class API(S3Mixin):
                 df["Date"] = pd.to_datetime(df["Date"], format=format_type)
             except ValueError:
                 continue
+
+        df.sort_values(by="Date", ascending=True, inplace=True)
         df.set_index("Date", inplace=True)
         return df
 
