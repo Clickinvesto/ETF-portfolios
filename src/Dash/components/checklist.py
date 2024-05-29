@@ -52,10 +52,6 @@ def is_utf8(content_string):
         return True
     except:
         return False
-
-        # ("Date (month)")
-
-
 def check_column_header(potential_file, position=0, expected_header="Date"):
     try:
         potential_file.seek(0)
@@ -71,6 +67,7 @@ def check_column_header(potential_file, position=0, expected_header="Date"):
 
 def create_check_list(file_name, file_content):
     tests = [False, False, False, False, False, False, False]
+
     tests[0] = True if file_name.split(".")[0] == "Series" else False
     tests[1] = True if file_name.split(".")[-1] == "csv" else False
     tests[2] = is_utf8(file_content)

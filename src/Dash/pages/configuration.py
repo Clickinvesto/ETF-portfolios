@@ -36,25 +36,11 @@ def layout(socket_ids=None, **kwargs):
     user = session.get("user", False)
     if not user:
         return dmc.Container()
-    openpay_id = user.get("openpay_id", "")
-    if openpay_id is None or openpay_id == "":
-        return full_layout(
-            None,
-            None,
-            None,
-            {
-                "message": "No Subscription found",
-                "error_message": "No OpenPay ID found for the user.",
-            },
-        )
-    else:
-        customer, subscription, plan, error_message = api.fetch_subscription_and_plan(
-            user.get("openpay_id", "")
-        )
-    return full_layout(customer["id"], subscription, plan, error_message)
+    error_message = {"message": None, "error_message": None}
+    return full_layout(error_message)
 
 
-def full_layout(customer_id, subscription, plan, error_message):
+def full_layout(error_message):
     if error_message["error_message"] is not None:
         return html.Div(
             [
@@ -70,167 +56,61 @@ def full_layout(customer_id, subscription, plan, error_message):
             style={"padding": "20px"},
         )
     else:
-        subscription_card_ids = [
-            sub["card"]["id"]
-            for sub in api.subscription_data["data"]
-            if sub["status"] == "active"
-        ]
-        return dmc.Container(
+        return html.Div(
             [
                 dmc.Title("Customer Configuration", order=2),
                 dmc.Space(h=10),
-                dmc.Flex(
-                    [
-                        dmc.Paper(
-                            [
-                                dmc.Stack(
-                                    [
-                                        dmc.Stack(
-                                            [
-                                                dmc.Text(
-                                                    "Subscription Plan:",
-                                                    size="md",
-                                                    fw=700,
-                                                    td="underline",
-                                                ),
-                                                dmc.Text(
-                                                    (
-                                                        f"Plan Name: {plan['name']}"
-                                                        if plan
-                                                        else "No active plan"
-                                                    ),
-                                                    id="subscription_plan",
-                                                    fw=700,
-                                                ),
-                                                dmc.Text(
-                                                    (
-                                                        f"Price: $ {plan['amount']}"
-                                                        if plan
-                                                        else ""
-                                                    ),
-                                                    id="subscription_price",
-                                                    fw=700,
-                                                ),
-                                            ],
-                                            justify="flex-start",
-                                        ),
-                                        dmc.Stack(
-                                            [
-                                                dmc.Group(
-                                                    [
-                                                        dmc.Button(
-                                                            "Delete User",
-                                                            color="red",
-                                                            id="delete_user",
-                                                        ),
-                                                        dmc.Space(w=10),
-                                                        dmc.Button(
-                                                            "Delete Openpay Account",
-                                                            color="orange",
-                                                            id="delete_openpay_account",
-                                                        ),
-                                                    ],
-                                                    justify="flex-start",
-                                                ),
-                                            ]
-                                        ),
-                                    ],
-                                    justify="space-between",
-                                    style={"height": "100%"},
-                                ),
-                            ]
+                dmc.Paper(
+                    id="subscription_paper",
+                    children=[
+                        dmc.Text(
+                            "Subscription Plan:",
+                            size="md",
+                            style={
+                                "textDecoration": "underline",
+                                "fontWeight": 500,
+                            },
                         ),
-                        dmc.Paper(
-                            [
-                                dmc.Text(
-                                    "Credit Cards:",
-                                    size="md",
-                                    style={
-                                        "textDecoration": "underline",
-                                        "marginLeft": 20,
-                                        "fontWeight": 500,
-                                    },
-                                ),
-                                dmc.Space(h=10),
-                                html.Div(
-                                    id="credit_cards_display",
-                                    children=(
-                                        [
-                                            html.Div(
-                                                [
-                                                    dmc.ActionIcon(
-                                                        DashIconify(
-                                                            icon=(
-                                                                "radix-icons:minus-circled"
-                                                                if card["id"]
-                                                                not in subscription_card_ids
-                                                                else "radix-icons:check-circled"
-                                                            ),
-                                                            width=20,
-                                                        ),
-                                                        id=(
-                                                            {
-                                                                "type": "delete_credit_card",
-                                                                "card_id": card["id"],
-                                                                "customer_id": customer_id,
-                                                            }
-                                                            if card["id"]
-                                                            not in subscription_card_ids
-                                                            else {
-                                                                "type": "used_credit_card"
-                                                            }
-                                                        ),
-                                                        size="lg",
-                                                        variant="filled",
-                                                        style={
-                                                            "background": "transparent",
-                                                            "color": (
-                                                                "red"
-                                                                if card["id"]
-                                                                not in subscription_card_ids
-                                                                else "yellow"
-                                                            ),
-                                                            "position": "absolute",
-                                                            "top": "150px",
-                                                            "right": "0px",
-                                                            "border": "none",
-                                                            "cursor": (
-                                                                "pointer"
-                                                                if card["id"]
-                                                                not in subscription_card_ids
-                                                                else "default"
-                                                            ),
-                                                            "zIndex": 999,
-                                                        },
-                                                    ),
-                                                    dcs.DashCreditCards(
-                                                        number=card["card_number"],
-                                                        name=card["holder_name"],
-                                                        expiry=f"{card['expiration_month']}/{card['expiration_year']}",
-                                                        issuer=card["brand"],
-                                                    ),
-                                                ],
-                                                style={
-                                                    "position": "relative",
-                                                    "padding": "0px",
-                                                    "borderRadius": "15px",
-                                                },
-                                            )
-                                            for card in api.cards_data
-                                        ]
-                                        or [html.Div("No cards available")]
-                                    ),
-                                    style={
-                                        "display": "flex",
-                                        "flexWrap": "wrap",
-                                        "justifyContent": "space-between",
-                                        "position": "relative",
-                                        "gap": "10px",
-                                        "margin": "10px",
-                                        "padding": "12px",
-                                    },
-                                ),
-                            ]
+                        dmc.Space(h=10),
+                        dmc.Skeleton(height=30, width="100%", animate=True),
+                        dmc.Space(h=10),
+                        dmc.Skeleton(height=30, width="50%", animate=True),
+                    ],
+                ),
+                dmc.Space(h=20),
+                dmc.Paper(
+                    id="credit_cards_paper",
+                    children=[
+                        dmc.Text(
+                            "Credit Cards:",
+                            size="md",
+                            style={
+                                "textDecoration": "underline",
+                                "marginLeft": 20,
+                                "fontWeight": 500,
+                            },
+                        ),
+                        dmc.Space(h=10),
+                        dmc.Group(
+                            children=[
+                                dmc.Skeleton(height=150, width="100%", animate=True, style={"flex": 1}),
+                                dmc.Skeleton(height=150, width="100%", animate=True, style={"flex": 1}),
+                            ],
+                            position="apart",
+                            spacing="md",
+                            grow=True
+                        ),
+                    ]
+                ),
+                dmc.Space(h=10),
+                dmc.Group(
+                    [
+                        dmc.Button("Delete User", color="red", id="delete_user"),
+                        dmc.Space(w=10),
+                        dmc.Button(
+                            "Delete Openpay Account",
+                            color="orange",
+                            id="delete_openpay_account",
                         ),
                     ],
                     style={
@@ -253,6 +133,169 @@ def full_layout(customer_id, subscription, plan, error_message):
 
 
 @callback(
+    Output("subscription_paper", "children"),
+    [Input("subscription_paper", "id")],
+)
+def update_subscription_paper(_):
+    user = session.get("user", False)
+    openpay_id = user.get("openpay_id", "")
+    if openpay_id:
+        subscription, plan, error_message = api.fetch_subscription_and_plan(openpay_id)
+        if error_message["error_message"]:
+            return [
+                dmc.Text(
+                    error_message["message"],
+                    size="md",
+                    fw=700,
+                    c="red",
+                )
+            ]
+        elif subscription is None:
+            return [
+                dmc.Text(
+                    "No Subscription found",
+                    size="md",
+                    fw=700,
+                    c="red",
+                ),
+                dmc.Text(
+                    f"Plan Name: {plan['name']}" if plan else "No active plan",
+                    id="subscription_plan",
+                    style={"display": "none", "fontWeight": 700},
+                ),
+                dmc.Text(
+                    f"Price: $ {plan['amount']}" if plan else "",
+                    id="subscription_price",
+                    style={"display": "none", "fontWeight": 700},
+                ),
+            ]
+        else:
+            return [
+                dmc.Text(
+                    "Subscription Plan:",
+                    size="md",
+                    style={"textDecoration": "underline", "fontWeight": 500},
+                ),
+                dmc.Space(h=10),
+                dmc.Text(
+                    f"Plan Name: {plan['name']}" if plan else "No active plan",
+                    id="subscription_plan",
+                    style={"fontWeight": 700},
+                ),
+                dmc.Text(
+                    f"Price: $ {plan['amount']}" if plan else "",
+                    id="subscription_price",
+                    style={"fontWeight": 700},
+                ),
+            ]
+
+
+@callback(
+    Output("credit_cards_paper", "children"),
+    [Input("credit_cards_paper", "id")],
+)
+def update_credit_cards_paper(_):
+    user = session.get("user", False)
+    openpay_id = user.get("openpay_id", "")
+    api.fetch_credit_cards(openpay_id)
+
+    subscription_card_ids = [
+        sub["card"]["id"]
+        for sub in api.subscription_data["data"]
+        if sub["status"] == "active"
+    ]
+
+    return [
+        dmc.Text(
+            "Credit Cards:",
+            size="md",
+            style={
+                "textDecoration": "underline",
+                "marginLeft": 20,
+                "fontWeight": 500,
+            },
+        ),
+        dmc.Space(h=10),
+        html.Div(
+            id="credit_cards_display",
+            children=(
+                [
+                    dmc.Paper(
+                        [
+                            dmc.ActionIcon(
+                                DashIconify(
+                                    icon=(
+                                        "radix-icons:minus-circled"
+                                        if card["id"]
+                                        not in subscription_card_ids
+                                        else "radix-icons:check-circled"
+                                    ),
+                                    width=20,
+                                ),
+                                id=(
+                                    {
+                                        "type": "delete_credit_card",
+                                        "card_id": card["id"],
+                                        "customer_id": openpay_id,
+                                    }
+                                    if card["id"]
+                                    not in subscription_card_ids
+                                    else {"type": "used_credit_card"}
+                                ),
+                                size="lg",
+                                variant="filled",
+                                style={
+                                    "background": "transparent",
+                                    "color": (
+                                        "red"
+                                        if card["id"]
+                                        not in subscription_card_ids
+                                        else "yellow"
+                                    ),
+                                    "position": "absolute",
+                                    "top": "150px",
+                                    "right": "0px",
+                                    "border": "none",
+                                    "cursor": (
+                                        "pointer"
+                                        if card["id"]
+                                        not in subscription_card_ids
+                                        else "default"
+                                    ),
+                                    "zIndex": 999,
+                                },
+                            ),
+                            dcs.DashCreditCards(
+                                number=card["card_number"],
+                                name=card["holder_name"],
+                                expiry=f"{card['expiration_month']}/{card['expiration_year']}",
+                                issuer=card["brand"],
+                            ),
+                        ],
+                        style={
+                            "position": "relative",
+                            "padding": "0px",
+                            "borderRadius": "15px",
+                        },
+                    )
+                    for card in api.cards_data
+                ]
+                or [html.Div("No cards available")]
+            ),
+            style={
+                "display": "flex",
+                "flexWrap": "wrap",
+                "justifyContent": "space-between",
+                "position": "relative",
+                "gap": "10px",
+                "margin": "10px",
+                "padding": "12px",
+            },
+        ),
+    ]
+
+
+@callback(
     Output("credit_cards_display", "children", allow_duplicate=True),
     Input(
         {"type": "delete_credit_card", "card_id": ALL, "customer_id": ALL}, "n_clicks"
@@ -266,18 +309,26 @@ def delete_credit_card_callback(n_clicks_list, socket_id):
 
     triggered_id_str = callback_context.triggered[0]["prop_id"].split(".")[0]
     triggered_id = json.loads(triggered_id_str)
-    card_id = triggered_id["card_id"]
+    card_id = triggered_id["card_id"] or None
     if card_id:
-        api.cards_data = [card for card in api.cards_data if card.get("id") != card_id]
+        notification_id = uuid.uuid4().hex
+        notify.send_socket(
+            to=socket_id,
+            type="start_process",
+            title="Deleting Card",
+            id=notification_id,
+        )
         if not api.delete_card_from_openpay(triggered_id["customer_id"], card_id):
             notify.send_socket(
                 to=socket_id,
-                type="error",
-                title="Something went wrong",
-                message="We could not delete the credit card. We will check the issue",
+                type="error_process",
+                title="Error",
+                message="Unable to delete credit card. Try again.",
+                id=notification_id,
             )
             return no_update
 
+        api.cards_data = [card for card in api.cards_data if card.get("id") != card_id]
         # Handle the case where there are no subscriptions
         if api.subscription_data and "data" in api.subscription_data:
             subscription_card_ids = [
@@ -288,6 +339,13 @@ def delete_credit_card_callback(n_clicks_list, socket_id):
         else:
             subscription_card_ids = []
         if api.cards_data:
+            notify.send_socket(
+                to=socket_id,
+                type="success_process",
+                title="Success",
+                message="Card deleted successfully!",
+                id=notification_id,
+            )
             updated_card_displays = [
                 dmc.Paper(
                     [
@@ -351,13 +409,12 @@ def delete_credit_card_callback(n_clicks_list, socket_id):
                 title="Credit Cards update",
                 message="We deleted the credit card",
             )
-            return updated_card_displays
-        else:
-            return [html.Div("No cards available")]
 
 
 @callback(
-    Output("redirect", "href"),
+    [
+        Output("redirect", "href"),
+    ],
     Input("delete_user", "n_clicks"),
     State("dash_websocket", "socketId"),
     prevent_initial_call=True,
@@ -368,7 +425,7 @@ def delete_user_callback(n_clicks, socket_id):
         email = user_session.get("email", "")
         openpay_id = user_session.get("openpay_id", "")
         if openpay_id is None or openpay_id == "":
-            return "No OpenPay ID found for the user.", no_update
+            raise PreventUpdate
         # Delete OpenPay account first
         notification_id = uuid.uuid4().hex
         notify.send_socket(
@@ -388,25 +445,12 @@ def delete_user_callback(n_clicks, socket_id):
                     id=notification_id,
                 )
                 logout_user()
-                return current_app.config["URL_SIGNUP"]
+                flash("Account deleted successfully.", "warning")
+                return [current_app.config["URL_SIGNUP"]]
             else:
-                notify.send_socket(
-                    to=socket_id,
-                    type="error_process",
-                    title="Something wrong at the API",
-                    message="Failed to delete user data from the database. Please try again later.",
-                    id=notification_id,
-                )
-                return no_update
+                raise PreventUpdate
         else:
-            notify.send_socket(
-                to=socket_id,
-                type="error_process",
-                title="Something wrong at the API",
-                message="Failed to delete OpenPay account. Please try again later.",
-                id=notification_id,
-            )
-            return no_update
+            raise PreventUpdate
     raise PreventUpdate
 
 
@@ -422,45 +466,59 @@ def delete_openpay_account_callback(n_clicks, socket_id):
         user_session = session["user"]
         email = user_session.get("email", "")
         openpay_id = user_session.get("openpay_id", "")
+        notification_id = uuid.uuid4().hex
         if openpay_id:
-            notification_id = uuid.uuid4().hex
             notify.send_socket(
                 to=socket_id,
-                type="start_process",
-                title="In process",
-                message="We are deleting all the information related to OpenPay. This can take a moment.",
-                id=notification_id,
+                type="success",
+                title="Deleting user",
+                message="Deleting user from openpay. Please wait a moment.",
             )
             if api.delete_account_from_openpay(openpay_id):
-                api.delete_user(email, openpay_id, False, True, True)
                 notify.send_socket(
                     to=socket_id,
-                    type="success_process",
-                    title="Success",
-                    message="All payment related information are deleted",
-                    id=notification_id,
+                    type="success",
+                    title="Deleting user",
+                    message="User from openpay deleted successfully!",
                 )
-                return (
-                    dcc.Location(
-                        pathname=current_app.config["URL_CONFIGURATION"], id="redirect"
-                    ),
-                    {"refresh": True},
-                )
+                if api.delete_user(email, openpay_id, False, True, True):
+                    notify.send_socket(
+                        to=socket_id,
+                        type="success_process",
+                        title="Deleting user",
+                        message="Openpay account and associated data deleted successfully.",
+                    )
+                    notify.send_socket(
+                        to=socket_id,
+                        type="success",
+                        title="Refreshing Data",
+                        message="Reloading user's data. Please wait!",
+                    )
+                    return (
+                        dcc.Location(
+                            pathname=current_app.config["URL_CONFIGURATION"], id="redirect"
+                        ),
+                        {"refresh": True},
+                    )
             else:
                 notify.send_socket(
                     to=socket_id,
                     type="error_process",
-                    title="Something wrong at the API",
+                    title="Deleting user",
                     message="Failed to delete OpenPay account. Please try again later.",
                     id=notification_id,
+                )
+                return (
+                    no_update,
+                    no_update,
                 )
                 return no_update, no_update
         else:
             notify.send_socket(
                 to=socket_id,
-                type="error",
-                title="No information",
-                message="Non of your data is saved at OpenPay",
+                type="error_process",
+                title="Deleting user",
+                message="No OpenPay ID found for the user.",
                 id=notification_id,
             )
             return no_update, no_update
@@ -477,7 +535,7 @@ def delete_openpay_account_callback(n_clicks, socket_id):
 def refresh_data(store_data):
     if store_data and store_data.get("refresh"):
         openpay_id = session["user"].get("openpay_id", "")
-        customer, subscription, plan, message = api.fetch_subscription_and_plan(
+        subscription, plan, message = api.fetch_subscription_and_plan(
             openpay_id
         )
 
@@ -488,6 +546,7 @@ def refresh_data(store_data):
             plan_name = "No subscription available"
             plan_price = ""
 
+        api.fetch_credit_cards(openpay_id)
         if api.cards_data:
             subscription_card_ids = [
                 sub["card"]["id"]
@@ -510,7 +569,7 @@ def refresh_data(store_data):
                                 {
                                     "type": "delete_credit_card",
                                     "card_id": card["id"],
-                                    "customer_id": customer["id"],
+                                    "customer_id": openpay_id,
                                 }
                                 if card["id"] not in subscription_card_ids
                                 else {"type": "used_credit_card"}
@@ -551,7 +610,15 @@ def refresh_data(store_data):
                 )
                 for card in api.cards_data
             ]
-            return (card_displays, plan_name.plan_price)
+            return (
+                card_displays,
+                plan_name,
+                plan_price,
+            )
         else:
-            return ([html.Div("No cards available")], plan_name, plan_price)
+            return (
+                [html.Div("No cards available")],
+                plan_name,
+                plan_price,
+            )
     raise PreventUpdate

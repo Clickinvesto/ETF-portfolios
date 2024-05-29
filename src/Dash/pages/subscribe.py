@@ -143,7 +143,6 @@ def full_layout(user=False):
                 justify="center",
             ),
             dmc.Space(h=10),
-            html.P(id="error_element", style={"color": "red"}),
             dmc.Space(h=5),
             dmc.Group(
                 [
@@ -341,6 +340,8 @@ def update_output(
             )
 
         user_session = session["user"]
+        openpay_id = user_session.get("openpay_id", "")
+        api.fetch_customer(openpay_id)
         email = user_session.get("email", "")
         notification_id = uuid.uuid4().hex
         notify.send_socket(
@@ -350,10 +351,10 @@ def update_output(
             message="We check the credit card and add the subscription. Please wait a moment.",
             id=notification_id,
         )
-        customer, subscription, api_error = api.create_customer_subscription(
+        subscription, api_error = api.create_customer_subscription(
+            api.customer,
             first_name,
             last_name,
-            email,
             "None",
             card_number,
             expiry,
@@ -398,7 +399,7 @@ def update_output(
                 no_update,
             )
         # All api calls are successful
-        if customer is not None and subscription is not None:
+        if subscription is not None:
             notify.send_socket(
                 to=socket_id,
                 type="success_process",
@@ -424,13 +425,9 @@ def update_output(
                 "",
                 "",
                 "",
-                "",
-                "",
             )
         elif button_id == "clear":
             return (
-                "",
-                "",
                 "",
                 "",
                 "",
