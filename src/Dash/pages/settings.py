@@ -28,7 +28,7 @@ from flask import current_app
 from dash.exceptions import PreventUpdate
 from itertools import combinations, product
 from flask import session, redirect
-from src.Dash.services.API import CalculateCombinations
+from src.Dash.services.calculation import CalculateCombinations
 from src.Dash.services.graph import plotting_engine
 from src.Dash.utils.functions import get_icon
 from src.Dash.components.checklist import create_check_list

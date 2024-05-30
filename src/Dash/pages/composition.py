@@ -19,11 +19,11 @@ from dash.exceptions import PreventUpdate
 from dash_iconify import DashIconify
 
 from src.Dash.components.header import make_header
-from src.Dash.services.API import API
+from src.Dash.services.calculation import LocalAPI
 from src.Dash.services.graph import plotting_engine, blank_fig
 from src.Dash.components.cagr_risk_table import make_cagr_risk_table
 
-api = API()
+api = LocalAPI()
 plotter = plotting_engine()
 
 context = decimal.getcontext()

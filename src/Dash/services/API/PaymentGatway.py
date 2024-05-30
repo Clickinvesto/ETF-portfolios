@@ -1,9 +1,7 @@
 import os
 
 import logging
-from src.models import User
-from sqlalchemy import true
-from .mixins.DatabaseMixin import DatabaseMixin
+from ..mixins.DatabaseMixin import DatabaseMixin
 from flask import current_app, session
 from datetime import datetime, timezone
 
@@ -231,7 +229,6 @@ class PaymentGatway(DatabaseMixin):
         try:
             customer = openpay.Customer.retrieve(openpay_id)
             subscription = customer.subscriptions.all()["data"][0]
-            print(subscription)
             return {
                 "item": subscription,
                 "error": False,

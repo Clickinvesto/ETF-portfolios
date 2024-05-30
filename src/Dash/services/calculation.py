@@ -16,7 +16,7 @@ context = decimal.getcontext()
 context.rounding = decimal.ROUND_HALF_UP
 
 
-class API(S3Mixin):
+class LocalAPI(S3Mixin):
 
     def __init__(self) -> None:
         self.working_directory = Path.cwd()
@@ -154,7 +154,7 @@ class API(S3Mixin):
         return df.select("Series").to_series().to_list()
 
 
-class CalculateCombinations(API):
+class CalculateCombinations(LocalAPI):
     def calc_metrics_pandas(self, portfolio):
         # Calculate the number of months
         number_of_months = len(portfolio)

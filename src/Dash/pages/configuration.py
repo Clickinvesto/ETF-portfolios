@@ -20,7 +20,7 @@ from dash_iconify import DashIconify
 from flask import current_app, session, flash
 from flask_login import logout_user
 
-from src.Dash.services.database import PaymentGatway
+from src.Dash.services.API.PaymentGatway import PaymentGatway
 from src.Dash.services.NotificationProvider import NotificationProvider
 from src.Dash.components.account_information import (
     create_subscription_paper,

@@ -18,7 +18,7 @@ from dash import (
 )
 from dash.exceptions import PreventUpdate
 from dash_iconify import DashIconify
-from src.Dash.services.database import PaymentGatway
+from src.Dash.services.API.PaymentGatway import PaymentGatway
 from src.Dash.utils.functions import get_countries
 from flask import session, current_app
 from src.Dash.services.NotificationProvider import NotificationProvider
@@ -389,6 +389,7 @@ def update_output(
             message="Thank you for subscribing to our service!",
             id=notification_id,
         )
+
         return (
             "",
             "",

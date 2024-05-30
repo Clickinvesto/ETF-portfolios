@@ -20,7 +20,7 @@ from src import login_manager
 from src.models import User, db
 from .forms import LoginForm, SignupForm, ResetPasswordForm
 from .. import mail
-from src.Dash.services.database import PaymentGatway
+from src.Dash.services.API.PaymentGatway import PaymentGatway
 from src.Dash.services.NotificationProvider import NotificationProvider
 
 notify = NotificationProvider()
