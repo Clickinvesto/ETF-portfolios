@@ -78,6 +78,26 @@ def login():
         # Log the new last login
         current_user.last_login = datetime.datetime.now()
 
+        result = api.fetch_active_subscription(user.__dict__.get("openpay_id", None))
+        # On log in we check if the user have an active subscription
+        user_dict = {
+            key: user.__dict__[key]
+            for key in ["id", "email", "is_admin", "subscription", "openpay_id"]
+        }
+        if not result["item"]:
+            current_user.subscription = None
+            user_dict["subscription"] = None
+        else:
+            # PRocess active subscription
+            subscription = result["item"]
+            if subscription.cancel_at_period_end:
+                subsc = subscription["period_end_date"]
+            else:
+                subsc = subscription["status"]
+            current_user.subscription = subsc
+            user_dict["subscription"] = subsc
+
+        session["user"] = user_dict
         db.session.commit()
         # Bring the user to the page he wanted to after lgin
         if "url" in session:
@@ -135,10 +155,17 @@ def login():
                 user_dict["subscription"] = None
             else:
                 # PRocess active subscription
-                print(result["item"])
+                subscription = result["item"]
+                if subscription.cancel_at_period_end:
+                    subsc = subscription["period_end_date"]
+                else:
+                    subsc = subscription["status"]
+                user.subscription = subsc
+                user_dict["subscription"] = subsc
 
-            db.session.commit()
             session["user"] = user_dict
+            db.session.commit()
+
             # Redirect the user to the right page, depending if admin or not
             if "url" in session:
                 if session["url"]:

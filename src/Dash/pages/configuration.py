@@ -22,7 +22,10 @@ from flask_login import logout_user
 
 from src.Dash.services.database import PaymentGatway
 from src.Dash.services.NotificationProvider import NotificationProvider
-from src.Dash.utils.functions import create_subscription_paper, create_credit_card_paper
+from src.Dash.components.account_information import (
+    create_subscription_paper,
+    create_credit_card_paper,
+)
 
 notify = NotificationProvider()
 api = PaymentGatway()
@@ -94,11 +97,6 @@ def full_layout():
                                                         "Delete User",
                                                         color="red",
                                                         id="delete_user",
-                                                    ),
-                                                    dmc.Button(
-                                                        "test",
-                                                        color="red",
-                                                        id="test_button",
                                                     ),
                                                 ],
                                                 justify="flex-start",
@@ -228,13 +226,6 @@ def update_credit_cards_paper(_, socket_id):
     prevent_initial_call=True,
 )
 def delete_credit_card_callback(n_clicks_list, socket_id):
-    # ToDo
-    """
-    1. I prepared two functions create_credit_card_paper, create_subscription_paper to produce the layout
-    2. Check the update credit card callback / the other to get the correct values via api call
-    3. This function should work similar
-
-    """
     if not any(n_clicks_list):
         raise PreventUpdate
     user_session = session["user"]
@@ -275,15 +266,10 @@ def delete_credit_card_callback(n_clicks_list, socket_id):
         raise PreventUpdate
     cards_data = [card for card in result["item"] if card.get("id") != card_id]
 
-    # Handle the case where there are no subscriptions
-    if api.subscription_data and "data" in api.subscription_data:
-        subscription_card_ids = [
-            sub["card"]["id"]
-            for sub in api.subscription_data["data"]
-            if sub["status"] == "active"
-        ]
-    else:
-        subscription_card_ids = []
+    result = api.fetch_subscription_and_plan(openpay_id)
+    subscription, plan = result["item"]
+    subscription_card_ids = subscription.get("card", False)
+
     if cards_data:
         notify.send_socket(
             to=socket_id,
@@ -292,69 +278,8 @@ def delete_credit_card_callback(n_clicks_list, socket_id):
             message="Card deleted successfully!",
             id=notification_id,
         )
-        updated_card_displays = [
-            dmc.Paper(
-                [
-                    dmc.ActionIcon(
-                        DashIconify(
-                            icon=(
-                                "radix-icons:minus-circled"
-                                if card["id"] not in subscription_card_ids
-                                else "radix-icons:check-circled"
-                            ),
-                            width=20,
-                        ),
-                        id=(
-                            {
-                                "type": "delete_credit_card",
-                                "card_id": card["id"],
-                                "customer_id": triggered_id["customer_id"],
-                            }
-                            if card["id"] not in subscription_card_ids
-                            else {"type": "used_credit_card"}
-                        ),
-                        size="lg",
-                        variant="filled",
-                        style={
-                            "background": "transparent",
-                            "color": (
-                                "red"
-                                if card["id"] not in subscription_card_ids
-                                else "yellow"
-                            ),
-                            "position": "absolute",
-                            "top": "150px",
-                            "right": "0px",
-                            "border": "none",
-                            "cursor": (
-                                "pointer"
-                                if card["id"] not in subscription_card_ids
-                                else "default"
-                            ),
-                            "zIndex": 999,
-                        },
-                    ),
-                    dcs.DashCreditCards(
-                        number=card["card_number"],
-                        name=card["holder_name"],
-                        expiry=f"{card['expiration_month']}/{card['expiration_year']}",
-                        issuer=card["brand"],
-                    ),
-                ],
-                style={
-                    "position": "relative",
-                    "padding": "0px",
-                    "borderRadius": "15px",
-                },
-            )
-            for card in api.cards_data
-        ]
-        notify.send_socket(
-            to=socket_id,
-            type="success",
-            title="Credit Cards update",
-            message="We deleted the credit card",
-        )
+        return create_credit_card_paper(cards_data, openpay_id, subscription_card_ids)
+    raise PreventUpdate
 
 
 @callback(
@@ -470,8 +395,7 @@ def delete_openpay_account_callback(n_clicks, socket_id):
 @callback(
     Output("credit_cards_paper", "children", allow_duplicate=True),
     Output("subscription_paper", "children"),
-    # Input("store-account-data", "data"),
-    Input("test_button", "n_clicks"),
+    Input("store-account-data", "data"),
     prevent_initial_call=True,
 )
 def refresh_data(store_data):
@@ -479,11 +403,12 @@ def refresh_data(store_data):
         openpay_id = session["user"].get("openpay_id", "")
         result = api.fetch_subscription_and_plan(openpay_id)
         subscription, plan = result["item"]
+        subscription_card_ids = subscription.get("card", False)
         content_subscription = create_subscription_paper(plan, subscription)
 
         result = api.fetch_credit_cards(openpay_id)
         credit_cards = result["item"]
-        subscription_card_ids = subscription.get("card", False)
+
         content_card = create_credit_card_paper(
             credit_cards, openpay_id, subscription_card_ids
         )
