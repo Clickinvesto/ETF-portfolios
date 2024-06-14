@@ -25,6 +25,7 @@ class User(UserMixin, db.Model):
     last_login = db.Column(db.DateTime, index=False, unique=False, nullable=True)
     subscription = db.Column(db.String(200))
     openpay_id = db.Column(db.String(200))
+    data_consent = db.Column(db.Boolean, index=False, unique=False, nullable=False, default=False)
 
     def set_password(self, password):
         """Create hashed password."""

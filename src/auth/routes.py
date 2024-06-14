@@ -217,6 +217,7 @@ def signup():
                 is_admin=form.is_admin.data,
                 verified=False,
                 created=datetime.datetime.now(),
+                data_consent=form.accept_terms.data
             )
             user.set_password(form.password.data)
 
@@ -414,3 +415,13 @@ def change_password(token):
         form=form,
         body="Change the password of your account",
     )
+
+
+@auth_bp.route(current_app.config["URL_DISCLAIMER"])
+def serve_disclaimer():
+    return render_template("/disclaimer.html")
+
+
+@auth_bp.route(current_app.config["URL_PRIVACY_POLICY"])
+def serve_terms_condition():
+    return render_template("/terms_condition.html")
