@@ -51,7 +51,14 @@ def is_utf8(content_string):
         decoded_string = decoded_content.decode("utf-8")
         return True
     except:
-        return False
+        try:
+            decoded_content = base64.b64decode(content_string)
+            decoded_string = decoded_content.decode("utf-8-sig")
+            return True
+        except:
+            return False
+
+
 def check_column_header(potential_file, position=0, expected_header="Date"):
     try:
         potential_file.seek(0)
@@ -73,7 +80,7 @@ def create_check_list(file_name, file_content):
     tests[2] = is_utf8(file_content)
     if tests[2]:
         decoded_content = base64.b64decode(file_content)
-        decoded_string = decoded_content.decode("utf-8")
+        decoded_string = decoded_content.decode("utf-8-sig")
         potential_file = StringIO(decoded_string)
         tests[3] = check_delimiter(potential_file)
         tests[4] = check_column_header(potential_file)
