@@ -45,18 +45,28 @@ def check_delimiter(potential_file, expected_delimiter=","):
         return False
 
 
+def has_bom(byte_string):
+    bom_utf8 = b"\xef\xbb\xbf"
+
+    # Read the first 3 bytes of the byte string
+    file_start = byte_string[:3]
+    if file_start == bom_utf8:
+        return True
+    else:
+        return False
+
+
 def is_utf8(content_string):
+    decoded_content = base64.b64decode(content_string)
+
     try:
-        decoded_content = base64.b64decode(content_string)
-        decoded_string = decoded_content.decode("utf-8")
+        if has_bom(decoded_content):
+            decoded_string = decoded_content.decode("utf-8-sig")
+        else:
+            decoded_string = decoded_content.decode("utf-8")
         return True
     except:
-        try:
-            decoded_content = base64.b64decode(content_string)
-            decoded_string = decoded_content.decode("utf-8-sig")
-            return True
-        except:
-            return False
+        return False
 
 
 def check_column_header(potential_file, position=0, expected_header="Date"):
@@ -80,7 +90,10 @@ def create_check_list(file_name, file_content):
     tests[2] = is_utf8(file_content)
     if tests[2]:
         decoded_content = base64.b64decode(file_content)
-        decoded_string = decoded_content.decode("utf-8-sig")
+        if has_bom(decoded_content):
+            decoded_string = decoded_content.decode("utf-8-sig")
+        else:
+            decoded_string = decoded_content.decode("utf-8")
         potential_file = StringIO(decoded_string)
         tests[3] = check_delimiter(potential_file)
         tests[4] = check_column_header(potential_file)
