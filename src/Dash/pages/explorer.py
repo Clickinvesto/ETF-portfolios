@@ -56,7 +56,6 @@ def full_layout():
                                 size="sm",
                             ),
                         ],
-                        style={"max-width": "50%", "min-width": "400px"},
                     ),
                     dmc.Paper(
                         [
@@ -69,7 +68,6 @@ def full_layout():
                                 id="performance_table",
                             ),
                         ],
-                        style={"max-width": "50%", "min-width": "400px"},
                     ),
                 ],
                 style={

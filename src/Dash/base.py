@@ -32,6 +32,8 @@ base_schema = {
                     "box-shadow": "4px 5px 21px -3px rgba(66, 68, 90, 1)",
                     "padding": 10,
                     "flex": "1 1 0",
+                    "max-width": "50%",
+                    "min-width": "400px",
                 }
             }
         },
