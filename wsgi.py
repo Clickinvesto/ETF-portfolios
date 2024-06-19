@@ -1,6 +1,12 @@
 import eventlet
 
-eventlet.monkey_patch()
+# eventlet.monkey_patch()
+
+import sys
+import os
+
+# Add the project directory to the sys.path
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
 
 # Patch openpay.util.utf8 function

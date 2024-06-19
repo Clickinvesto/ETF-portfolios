@@ -185,6 +185,7 @@ def create_app():
 
         # Create Database Models
         db.create_all()
+        """
         if (
             User.query.filter_by(email=current_app.config["ADMIN_EMAIL"]).first()
             is None
@@ -196,6 +197,7 @@ def create_app():
                 verified=True,
                 subscription="Silver",
                 created=datetime.datetime.now(),
+                data_consent=True,
             )
             user.set_password(current_app.config["ADMIN_PASSWORD"])
             db.session.add(user)
@@ -207,11 +209,12 @@ def create_app():
                 verified=True,
                 subscription=False,
                 created=datetime.datetime.now(),
+                data_consent=True,
             )
             user.set_password(current_app.config["NO_ADMIN_PASSWORD"])
             db.session.add(user)
             db.session.commit()
-
+        """
         from .Dash.dashapp import create_dashapp
 
         app = create_dashapp(app, current_app.config["URL_DASH"])
