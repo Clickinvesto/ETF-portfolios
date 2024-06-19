@@ -66,3 +66,5 @@ class URL:
     URL_VERIFY_EMAIL = "/vefify-email/<token>"
     URL_CONFIGURATION = "/configuration"
     URL_SUBSCRIBTION = "/subscribtion"
+    URL_DISCLAIMER = "/disclaimer"
+    URL_PRIVACY_POLICY = "/terms-condition"

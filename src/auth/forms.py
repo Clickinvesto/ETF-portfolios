@@ -54,7 +54,7 @@ class SignupForm(FlaskForm):
         "Confirm Your Password",
         validators=[DataRequired()],
     )
-
+    accept_terms = BooleanField("I accept the Terms & Conditions and Privacy Policy")
     submit = SubmitField("Register")
 
 

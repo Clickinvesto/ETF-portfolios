@@ -1,5 +1,6 @@
 import dash_mantine_components as dmc
 from dash import html, page_container, dcc, callback, Input, State, Output
+from src.Dash.components.footer import make_footer
 from src.Dash.components.navbar import make_navbar
 from src.Dash.components.header import make_header
 from dash_bootstrap_templates import load_figure_template
@@ -110,6 +111,7 @@ def layout():
                 dmc.AppShellHeader(make_header(), px=25, style={"padding-top": "10px"}),
                 dmc.AppShellNavbar(make_navbar()),
                 dmc.AppShellMain(page_container),
+                dmc.AppShellFooter(make_footer(), style={"padding": "5px"}),
             ],
             header={"height": 70},
             padding="10px",
