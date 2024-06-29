@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timedelta, timezone
 import jwt
 import json
 from flask import Blueprint, render_template
@@ -17,14 +17,17 @@ from flask import (
 from flask_login import login_required, logout_user, current_user, login_user
 
 from src import login_manager
-from src.models import User, db
+from src.models import User, db, PaypalSubscription
 from .forms import LoginForm, SignupForm, ResetPasswordForm
 from .. import mail
 from src.Dash.services.API.PaymentGatway import PaymentGatway
 from src.Dash.services.NotificationProvider import NotificationProvider
+from ..Dash.services.API.SubscriptionService import SubscriptionService
 
 notify = NotificationProvider()
 api = PaymentGatway()
+subscription_service = SubscriptionService()
+
 
 # Register auth_bp as blueprint
 auth_bp = Blueprint(
@@ -76,12 +79,13 @@ def login():
 
     if current_user.is_authenticated:
         # Log the new last login
-        current_user.last_login = datetime.datetime.now()
+        current_user.last_login = datetime.now()
 
-        result = api.fetch_active_subscription(user.__dict__.get("openpay_id", None))
+        result = api.fetch_active_subscription(current_user.__dict__.get("openpay_id", None))
         # On log in we check if the user have an active subscription
         user_dict = {
-            key: user.__dict__[key]
+            key: current_user.__dict__[key]
+            # ToDo remove the "openpay_id" from dictionary
             for key in ["id", "email", "is_admin", "subscription", "openpay_id"]
         }
         if not result["item"]:
@@ -141,25 +145,31 @@ def login():
         if user and user.check_password(password=loginForm.password.data):
             # Login User and store last login
             login_user(user)
-            user.last_login = datetime.datetime.now()
-            result = api.fetch_active_subscription(
-                user.__dict__.get("openpay_id", None)
-            )
+            user.last_login = datetime.now()
+
+            # Debug: Print the keys of the user.__dict__ dictionary
+            # print("User dictionary keys:", user.__dict__.keys())
+
+            # result = api.fetch_active_subscription(
+            #     user.__dict__.get("openpay_id", None)
+            # )
+            result = subscription_service.get_latest_user_subscription(user.__dict__.get('id', None))
             # On log in we check if the user have an active subscription
             user_dict = {
                 key: user.__dict__[key]
+                # ToDo remove the "openpay_id" from dictionary
                 for key in ["id", "email", "is_admin", "subscription", "openpay_id"]
             }
             if not result["item"]:
                 user.subscription = None
                 user_dict["subscription"] = None
             else:
-                # PRocess active subscription
+                # Process active subscription
                 subscription = result["item"]
-                if subscription.cancel_at_period_end:
-                    subsc = subscription["period_end_date"]
+                if subscription.subscription_id:
+                    subsc = subscription.subscription_id
                 else:
-                    subsc = subscription["status"]
+                    subsc = subscription.status
                 user.subscription = subsc
                 user_dict["subscription"] = subsc
 
@@ -216,7 +226,7 @@ def signup():
                 email=form.email.data,
                 is_admin=form.is_admin.data,
                 verified=False,
-                created=datetime.datetime.now(),
+                created=datetime.now(),
                 data_consent=form.accept_terms.data
             )
             user.set_password(form.password.data)
@@ -225,8 +235,8 @@ def signup():
             token = jwt.encode(
                 {
                     "email_address": user.email,
-                    "exp": datetime.datetime.now(tz=datetime.timezone.utc)
-                    + datetime.timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
+                    "exp": datetime.now(tz=timezone.utc)
+                    + timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
                 },
                 current_app.config["SECRET_KEY"],
                 algorithm="HS256",
@@ -282,8 +292,8 @@ def resent_email():
         token = jwt.encode(
             {
                 "email_address": existing_user.email,
-                "exp": datetime.datetime.now(tz=datetime.timezone.utc)
-                + datetime.timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
+                "exp": datetime.now(tz=timezone.utc)
+                + timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
             },
             current_app.config["SECRET_KEY"],
             algorithm="HS256",
@@ -327,11 +337,12 @@ def verify_email(token):
             db.session.commit()
 
             # Create OpenPay customer
-            openpay_customer, customer_api_error = api.create_openpay_customer(email)
-            if customer_api_error:
-                flash("Failed to create customer at OpenPay", category="danger")
-            else:
-                flash("You can log in now", category="success")
+            # openpay_customer, customer_api_error = api.create_openpay_customer(email)
+            # if customer_api_error:
+            #     flash("Failed to create customer at OpenPay", category="danger")
+            # else:
+            #     flash("You can log in now", category="success")
+
         return redirect(url_for("auth_bp.login"))
 
     except jwt.ExpiredSignatureError:
@@ -357,8 +368,8 @@ def reset_password():
         token = jwt.encode(
             {
                 "email_address": email,
-                "exp": datetime.datetime.now(tz=datetime.timezone.utc)
-                + datetime.timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
+                "exp": datetime.now(tz=timezone.utc)
+                + timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
             },
             current_app.config["SECRET_KEY"],
             algorithm="HS256",
@@ -425,3 +436,20 @@ def serve_disclaimer():
 @auth_bp.route(current_app.config["URL_PRIVACY_POLICY"])
 def serve_terms_condition():
     return render_template("/terms_condition.html")
+
+
+@auth_bp.route(current_app.config["URL_SAVE_SUBSCRIPTION"], methods=["POST"])
+def save_subscription():
+    data = request.json
+    subscription_id = data["subscriptionID"]
+    details = data["details"]
+    user = session.get("user")
+    user_id = user.get("id", None)
+
+    if not user_id:
+        flash("You must be logged in to view that page.", category="warning")
+        return redirect(url_for("auth_bp.login"))
+
+    new_subscription = subscription_service.save_subscription(user_id, subscription_id, details)
+
+    return jsonify({"message": "Subscription saved successfully"})

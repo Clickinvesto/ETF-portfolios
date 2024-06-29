@@ -7,7 +7,6 @@ from flask import current_app, session
 
 def make_header():
     user = session.get("user")
-    print(f"the user is {user}")
     links = []
     if user:
         links.append(

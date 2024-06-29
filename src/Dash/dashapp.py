@@ -1,5 +1,5 @@
 from dash import Dash, Input, _dash_renderer
-
+from flask import current_app
 from .base import layout
 
 _dash_renderer._set_react_version("18.2.0")
@@ -33,6 +33,28 @@ def create_dashapp(server, base_url):
     # Set favicon
     # app._favicon = f"{assets_path}/img/favicon.ico"
     app.title = "Stock"
+
+    app.index_string = '''
+    <!DOCTYPE html>
+    <html>
+        <head>
+            {%metas%}
+            <title>{%title%}</title>
+            {%favicon%}
+            {%css%}
+            <script src="https://www.paypal.com/sdk/js?client-id=YOUR_CLIENT_ID"></script>
+        </head>
+        <body>
+            {%app_entry%}
+            <footer>
+                {%config%}
+                {%scripts%}
+                {%renderer%}
+            </footer>
+        </body>
+    </html>
+    '''
+    app.index_string = app.index_string.replace('YOUR_CLIENT_ID', current_app.config['PAYPAL_CLIENT_ID'])
 
     app.layout = layout
 

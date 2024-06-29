@@ -2,8 +2,6 @@ import dash
 import os
 import sys
 import boto3
-import datetime
-import openpay
 import logging
 from pathlib import Path
 from flask import (
@@ -152,13 +150,13 @@ def create_app():
             return
 
     with app.app_context():
-        openpay.production = current_app.config["OPENPAY_PRODUCTION"]
-        openpay.api_key = current_app.config["OPENPAY_APIKEY"]
-        openpay.verify_ssl_certs = current_app.config["OPENPAY_VERIFY_SSL_CERTS"]
-        openpay.merchant_id = current_app.config["OPENPAY_MERCHANT_ID"]
-        openpay.country = current_app.config["OPENPAY_COUNTRY"]
-
-        current_app.Openpay = openpay
+        # openpay.production = current_app.config["OPENPAY_PRODUCTION"]
+        # openpay.api_key = current_app.config["OPENPAY_APIKEY"]
+        # openpay.verify_ssl_certs = current_app.config["OPENPAY_VERIFY_SSL_CERTS"]
+        # openpay.merchant_id = current_app.config["OPENPAY_MERCHANT_ID"]
+        # openpay.country = current_app.config["OPENPAY_COUNTRY"]
+        #
+        # current_app.Openpay = openpay
 
         # Integrate the dash application
         from .auth import routes as auth
