@@ -10,7 +10,7 @@ from dash import (
     ctx,
     no_update,
     ALL,
-    Patch,
+    clientside_callback,
 )
 import logging
 from flask import current_app

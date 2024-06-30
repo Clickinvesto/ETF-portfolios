@@ -102,6 +102,10 @@ def layout():
             [
                 dcc.Location(id="url", refresh=True),
                 dcc.Store(id="series_store", storage_type="session"),
+                dcc.Interval(
+                    id="check_login",  # interval=60000),
+                    interval=60000,
+                ),
                 DashSocketIO(
                     id="dash_websocket",
                     eventNames=["notification"],
@@ -110,8 +114,10 @@ def layout():
                 html.Div(id="notify_container"),
                 dmc.AppShellHeader(make_header(), px=25, style={"padding-top": "10px"}),
                 dmc.AppShellNavbar(make_navbar()),
-                dmc.AppShellMain(page_container),
-                dmc.AppShellFooter(make_footer(), style={"padding": "5px"}),
+                dmc.AppShellMain(page_container, style={"padding-bottom": "50px"}),
+                dmc.AppShellFooter(
+                    make_footer(), style={"padding": "5px", "height": "40px"}
+                ),
             ],
             header={"height": 70},
             padding="10px",

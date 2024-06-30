@@ -89,3 +89,42 @@ class Purchases(db.Model):
 
     def __repr__(self):
         return "<Purchase {}>".format(self.id)
+
+
+# Define a subscription model
+class Subscription(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, nullable=False)
+    subscription_id = db.Column(db.String(100), nullable=False)
+    plan_id = db.Column(db.String(100), nullable=False)
+    start_date = db.Column(db.DateTime, nullable=False)
+    next_billing_date = db.Column(db.DateTime, nullable=False)
+    status = db.Column(db.String(100), nullable=False)
+
+
+class PaypalPlans(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    plan_id = db.Column(db.String(255), unique=True, nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    price = db.Column(db.Numeric(10, 2), nullable=False)
+    currency = db.Column(db.String(10), nullable=False)
+    interval_unit = db.Column(db.String(50), nullable=False)
+    interval_count = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class PaypalSubscription(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, nullable=False)
+    subscription_id = db.Column(db.String(255), nullable=False)
+    plan_id = db.Column(db.String(255), nullable=False)
+    status = db.Column(db.String(50), nullable=False)
+    start_date = db.Column(db.DateTime, nullable=False)
+    next_billing_date = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<subscription_id: {self.subscription_id}:, plan_id: {self.plan_id}, status: {self.status}, start_date: {self.start_date}, next_billing_date: {self.next_billing_date} '

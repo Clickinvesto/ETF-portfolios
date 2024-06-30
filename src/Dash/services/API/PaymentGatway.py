@@ -6,7 +6,8 @@ from flask import current_app, session
 from datetime import datetime, timezone
 
 db = current_app.db
-openpay = current_app.Openpay
+# openpay = current_app.Openpay
+openpay = None
 
 
 class PaymentGatway(DatabaseMixin):

@@ -47,6 +47,16 @@ class Config:
     AWS_SECRET_KEY = environ.get("BUCKETEER_AWS_SECRET_ACCESS_KEY")
     AWS_REGION = environ.get("BUCKETEER_AWS_REGION")
 
+    PAYPAL_SANDBOX = environ.get("PAYPAL_SANDBOX", True)
+    PAYPAL_CLIENT_ID = environ.get("PAYPAL_CLIENT_ID")
+    PAYPAL_CLIENT_SECRET = environ.get("PAYPAL_CLIENT_SECRET")
+    PAYPAL_PLAN_ID = environ.get("PAYPAL_PLAN_ID")
+    PAYPAL_API_BASE_URL = (
+        "https://api-m.sandbox.paypal.com"
+        if PAYPAL_SANDBOX
+        else "https://api.paypal.com"
+    )
+
 
 class URL:
     # Flask URLS
@@ -68,3 +78,6 @@ class URL:
     URL_SUBSCRIBTION = "/subscribtion"
     URL_DISCLAIMER = "/disclaimer"
     URL_PRIVACY_POLICY = "/terms-condition"
+
+    URL_SAVE_SUBSCRIPTION = "/save-subscription"
+    URL_CANCEL_SUBSCRIPTION = "/cancel-subscription"

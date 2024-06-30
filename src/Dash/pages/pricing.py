@@ -7,48 +7,120 @@ from dash import (
     Input,
     Output,
     State,
-    ctx,
+    clientside_callback,
     no_update,
-    ALL,
-    Patch,
+    ctx,
 )
 from flask import current_app, session
 from dash.exceptions import PreventUpdate
 from dash_iconify import DashIconify
+from src.Dash.services.API.PaymentGateway import PaymentGateway
+from src.Dash.services.API.SubscriptionService import SubscriptionService
+
+db = current_app.db
 
 register_page(__name__, name="Pricing", path=current_app.config["URL_PRICING"])
 
 
+def create_confirmation_modal():
+    return dmc.Modal(
+        id="confirmation-modal",
+        title="Confirm Cancellation",
+        zIndex=10000,
+        children=[
+            dmc.Text(
+                "This action will cancel your current subscription. Are you sure you want to do this?"
+            ),
+            dmc.Space(h=20),
+            dmc.Group(
+                [
+                    dmc.Button("Yes", id="confirm-cancel-button", color="red"),
+                    dmc.Button("No", id="close-modal-button"),
+                ],
+                justify="flex-end",
+            ),
+        ],
+        size="sm",
+        opened=False,
+    )
+
+
 def layout(socket_ids=None, **kwargs):
-    if socket_ids == None:
+    if socket_ids is None:
         raise PreventUpdate
 
-    return full_layout(user=session.get("user"))
+    return html.Div(
+        [
+            dcc.Interval(
+                id="interval-component", interval=1, n_intervals=0, max_intervals=1
+            ),
+            dcc.Location(id="page-location", refresh=True),
+            full_layout(user=session.get("user")),
+            create_confirmation_modal(),
+        ]
+    )
 
 
 def full_layout(user=False):
-    signup = dmc.Anchor(
+    signup = dmc.Button(
         "Sign Up",
-        href=current_app.config["URL_SIGNUP"],
-        refresh=True,
+        id="signup-button",
+        variant="filled",
+        color="indigo",
         style={
-            "backgrund-color": "#004c94",
-            "border-radius": "20px",
+            "border-radius": "5px",
+            "margin-top": "20px",
+            "min-height": "45px",
         },
     )
 
-    subscribe = dmc.Anchor(
-        "Subscribe",
-        href=current_app.config["URL_SUBSCRIBTION"],
-        refresh=True,
+    use_free = dmc.Button(
+        "Use Free",
+        id="use-free-button",
+        variant="filled",
+        color="indigo",
         style={
-            "backgrund-color": "#004c94",
-            "border-radius": "20px",
+            "border-radius": "5px",
+            "cursor": "pointer",
+            "min-height": "45px",
         },
     )
+
+    active = dmc.Button(
+        "Active",
+        color="green",
+        fullWidth=True,
+        style={
+            "border-radius": "5px",
+            "cursor": "default",
+            "min-height": "45px",
+            "margin-top": "25px",
+        },
+    )
+    subscribe = html.Div(
+        id="paypal-button-container", style={"min-height": "45px", "margin-top": "20px"}
+    )
+
+    if user:
+        user_id = user.get("id")
+        subscription_service = SubscriptionService()
+        status = subscription_service.has_active_subscription(user_id)
+        button = active if status["item"]["has_active"] else subscribe
+    else:
+        button = signup
 
     return dmc.Container(
         [
+            dcc.Location(id="redirect", refresh=True),
+            dcc.Store(
+                id="paypal-store",
+                data={
+                    "" "scriptLoaded": False,
+                    "clientId": current_app.config["PAYPAL_CLIENT_ID"],
+                    "planId": current_app.config["PAYPAL_PLAN_ID"],
+                },
+            ),
+            dcc.Store(id="subscription-status"),
             dmc.Grid(
                 [
                     dmc.Stack(
@@ -123,13 +195,8 @@ def full_layout(user=False):
                                                     ),
                                                 ],
                                             ),
-                                            dmc.Space(h=10),
-                                            dmc.Anchor(
-                                                "Use Free",
-                                                style={"backgrund-color": "#004c94"},
-                                                href=current_app.config["URL_EXPLORER"],
-                                                refresh=True,
-                                            ),
+                                            dmc.Space(h=35),
+                                            use_free,
                                         ],
                                         withBorder=True,
                                         shadow="sm",
@@ -194,7 +261,7 @@ def full_layout(user=False):
                                                 ],
                                             ),
                                             dmc.Space(h=10),
-                                            subscribe if user else signup,
+                                            button,
                                         ],
                                         withBorder=True,
                                         shadow="sm",
@@ -228,14 +295,205 @@ def full_layout(user=False):
     )
 
 
+# @callback(
+#     Output("subscription_modal", "opened", allow_duplicate=True),
+#     Output("plan_text", "children"),
+#     Input("subscription", "n_clicks"),
+#     prevent_initial_call="initial_duplicate",
+#     # prevent_initial_call=True,
+# )
+# def open_modal(n_clicks):
+#     if n_clicks:
+#         return True, "You selected the silver plan for 7USD"
+#     raise PreventUpdate
+
+
+# Callback to open the modal
 @callback(
-    Output("subscription_modal", "opened", allow_duplicate=True),
-    Output("plan_text", "children"),
-    Input("subscription", "n_clicks"),
-    prevent_initial_call="initial_duplicate",
-    # prevent_inital_call=True,
+    Output("confirmation-modal", "opened", allow_duplicate=True),
+    Output("redirect", "pathname"),
+    Input("use-free-button", "n_clicks"),
+    Input("signup-button", "n_clicks"),
+    State("subscription-status", "data"),
+    prevent_initial_call=True,
 )
-def open_modal(n_clicks):
-    if n_clicks:
-        return True, "You selected the silver plan for 7USD"
-    raise PreventUpdate
+def open_modal(n_clicks, sign_up, subscription_status):
+    if ctx.triggered_id == "signup-button":
+        return no_update, "/login"
+    elif subscription_status and subscription_status.get("active"):
+        return True, no_update
+    else:
+        return no_update, current_app.config["URL_EXPLORER"]
+
+
+# Callback to close the modal
+@callback(
+    Output("confirmation-modal", "opened", allow_duplicate=True),
+    [Input("close-modal-button", "n_clicks")],
+    prevent_initial_call=True,
+)
+def close_modal(n_clicks):
+    return False
+
+
+# Callback to cancel the subscription
+@callback(
+    Output("confirmation-modal", "opened", allow_duplicate=True),
+    Output("subscription-status", "data"),
+    Output("paypal-store", "data", allow_duplicate=True),
+    Output("page-location", "href"),
+    [Input("confirm-cancel-button", "n_clicks")],
+    prevent_initial_call=True,
+)
+def cancel_subscription(n_clicks, socket_id):
+    if session.get("user"):
+        user_id = session.get("user")["id"]
+        payment_gateway = PaymentGateway()
+        result = payment_gateway.cancel_subscription(user_id)
+        if result["item"] is False:
+            return (
+                True,
+                result,
+                {
+                    "scriptLoaded": True,
+                    "clientId": current_app.config["PAYPAL_CLIENT_ID"],
+                    "planId": current_app.config["PAYPAL_PLAN_ID"],
+                },
+                current_app.config["URL_PRICING"],
+            )
+    else:
+        return no_update, no_update, current_app.config["URL_EXPLORER"]
+
+
+@callback(
+    Output("paypal-store", "data", allow_duplicate=True),
+    Output("subscription-status", "data", allow_duplicate=True),
+    [Input("interval-component", "n_intervals")],
+    prevent_initial_call=True,
+)
+def load_paypal_script(n_intervals):
+    if session.get("user"):
+        user_id = session.get("user")["id"]
+        subscription_service = SubscriptionService()
+        result = subscription_service.has_active_subscription(user_id)
+        if result["error"] is False:
+            subscription_status = {"active": None, "subscription_id": None}
+        else:
+            subscription_status = {
+                "active": result["item"]["has_active"],
+                "subscription_id": result["item"]["subscription"]["subscription_id"],
+            }
+        return {
+            "scriptLoaded": True,
+            "clientId": current_app.config["PAYPAL_CLIENT_ID"],
+            "planId": current_app.config["PAYPAL_PLAN_ID"],
+        }, subscription_status
+    else:
+        return {
+            "scriptLoaded": True,
+            "clientId": current_app.config["PAYPAL_CLIENT_ID"],
+            "planId": current_app.config["PAYPAL_PLAN_ID"],
+        }, no_update
+
+
+clientside_callback(
+    """function(n_clicks) {
+        console.log(n_clicks);
+            if (n_clicks) {
+                window.location.href = '/login';
+            }
+            return dash_clientside.no_update
+""",
+    Output("signup-button", "n_clicks"),
+    Input("signup-button", "n_clicks"),
+    prevent_initial_call=True,
+)
+
+clientside_callback(
+    """
+    function (storeData) {
+        var scriptLoaded = storeData.scriptLoaded;
+        var paypalClientId = storeData.clientId;
+        var paypalPlanId = storeData.planId;
+        
+        console.log("Script Loaded: ", scriptLoaded);
+        console.log("PayPal Client ID: ", paypalClientId);
+        console.log("PayPal Plan ID: ", paypalPlanId);
+        
+        if (!scriptLoaded || !paypalClientId) {
+            console.log("Script not loaded or PayPal Client ID missing");
+            return window.dash_clientside.no_update;
+        }
+        if (document.querySelector("[id^='zoid-paypal-buttons-uid_']")) {
+            console.log("PayPal button already rendered");
+            return window.dash_clientside.no_update;
+        }
+        if (document.getElementById('paypal-sdk')) {
+            // Script already exists, just render the button
+            console.log("PayPal SDK script already exists, rendering button...");
+            renderPayPalButton();
+            return window.dash_clientside.no_update;
+        }
+        // Create the PayPal script element
+        var script = document.createElement('script');
+        script.id = 'paypal-sdk';
+        script.src = 'https://www.paypal.com/sdk/js?client-id=' + paypalClientId + '&components=buttons&currency=USD&vault=true&intent=subscription';
+        script.onload = function () {
+            console.log("PayPal SDK script loaded, rendering button...");
+            renderPayPalButton(paypalClientId, paypalPlanId);
+        };
+        // Append the script to the body
+        document.body.appendChild(script);
+        function renderPayPalButton(clientID, planID) {
+            console.log("Rendering PayPal button with Client ID:", clientID, "and Plan ID:", planID);
+            paypal.Buttons({
+                fundingSource: paypal.FUNDING.PAYPAL,
+                style: {
+                    layout: 'vertical',
+                    color: 'gold',
+                    shape: 'rect',
+                    label: 'paypal',
+                    tagline: false
+                },
+                createSubscription: function(data, actions) {
+                    console.log("Creating subscription with Plan ID:", planID);
+                    return actions.subscription.create({
+                        'plan_id': planID
+                    });
+                },
+                onApprove: function(data, actions) {
+                    console.log("Subscription approved with data:", data);
+                    return actions.subscription.get().then(function(details) {
+                        console.log("Subscription details:", details);
+                        // Send subscription details to server
+                        fetch('/save-subscription', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                subscriptionID: data.subscriptionID,
+                                details: details
+                            })
+                        }).then(function(response) {
+                            console.log("Server response:", response);
+                            return response.json();
+                        }).then(function(data) {
+                            console.log("Response data:", data);
+                        });
+                    });
+                }
+            }).render('#paypal-button-container');
+        }
+    }
+    """,
+    Output("paypal-button-container", "children"),
+    Input("paypal-store", "data"),
+    prevent_initial_call=True,
+)
+
+
+# email: info@pure-inference.com : JA2j@uWq
+# This is the sandbox application
+# Link: https://sandbox.paypal.com
+# Email: sb-17qmz31300247@business.example.com : xw{-?U3&
