@@ -71,6 +71,15 @@ def redirect_to_dash():
     return redirect(current_app.config["URL_EXPLORER"])
 
 
+@auth_bp.route("/get_current_user", methods=["GET", "POST"])
+def get_current_user():
+    if current_user.is_authenticated:
+        return jsonify(True)
+    else:
+        flash("Your session timed out. Please log in again.", category="warning")
+        return jsonify(False)
+
+
 @auth_bp.route(current_app.config["URL_LOGIN"], methods=["GET", "POST"])
 def login():
     # First we check if the user is already authenticated and directly bring him to the userPage
@@ -81,7 +90,9 @@ def login():
         # Log the new last login
         current_user.last_login = datetime.now()
 
-        result = api.fetch_active_subscription(current_user.__dict__.get("openpay_id", None))
+        result = api.fetch_active_subscription(
+            current_user.__dict__.get("openpay_id", None)
+        )
         # On log in we check if the user have an active subscription
         user_dict = {
             key: current_user.__dict__[key]
@@ -153,7 +164,9 @@ def login():
             # result = api.fetch_active_subscription(
             #     user.__dict__.get("openpay_id", None)
             # )
-            result = subscription_service.get_latest_user_subscription(user.__dict__.get('id', None))
+            result = subscription_service.get_latest_user_subscription(
+                user.__dict__.get("id", None)
+            )
             # On log in we check if the user have an active subscription
             user_dict = {
                 key: user.__dict__[key]
@@ -227,7 +240,7 @@ def signup():
                 is_admin=form.is_admin.data,
                 verified=False,
                 created=datetime.now(),
-                data_consent=form.accept_terms.data
+                data_consent=form.accept_terms.data,
             )
             user.set_password(form.password.data)
 
@@ -450,6 +463,8 @@ def save_subscription():
         flash("You must be logged in to view that page.", category="warning")
         return redirect(url_for("auth_bp.login"))
 
-    new_subscription = subscription_service.save_subscription(user_id, subscription_id, details)
+    new_subscription = subscription_service.save_subscription(
+        user_id, subscription_id, details
+    )
 
     return jsonify({"message": "Subscription saved successfully"})

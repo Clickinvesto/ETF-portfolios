@@ -9,6 +9,7 @@ from dash import (
     State,
     clientside_callback,
     no_update,
+    ctx,
 )
 from flask import current_app, session
 from dash.exceptions import PreventUpdate
@@ -27,15 +28,17 @@ def create_confirmation_modal():
         title="Confirm Cancellation",
         zIndex=10000,
         children=[
-            dmc.Text("This action will cancel your current subscription. Are you sure you want to do this?"),
+            dmc.Text(
+                "This action will cancel your current subscription. Are you sure you want to do this?"
+            ),
             dmc.Space(h=20),
             dmc.Group(
                 [
                     dmc.Button("Yes", id="confirm-cancel-button", color="red"),
-                    dmc.Button("No", id="close-modal-button")
+                    dmc.Button("No", id="close-modal-button"),
                 ],
                 justify="flex-end",
-            )
+            ),
         ],
         size="sm",
         opened=False,
@@ -46,12 +49,16 @@ def layout(socket_ids=None, **kwargs):
     if socket_ids is None:
         raise PreventUpdate
 
-    return html.Div([
-        dcc.Interval(id='interval-component', interval=1, n_intervals=0, max_intervals=1),
-        dcc.Location(id="page-location", refresh=True),
-        full_layout(user=session.get("user")),
-        create_confirmation_modal()
-    ])
+    return html.Div(
+        [
+            dcc.Interval(
+                id="interval-component", interval=1, n_intervals=0, max_intervals=1
+            ),
+            dcc.Location(id="page-location", refresh=True),
+            full_layout(user=session.get("user")),
+            create_confirmation_modal(),
+        ]
+    )
 
 
 def full_layout(user=False):
@@ -87,15 +94,11 @@ def full_layout(user=False):
             "border-radius": "5px",
             "cursor": "default",
             "min-height": "45px",
-            "margin-top": "25px"
+            "margin-top": "25px",
         },
     )
     subscribe = html.Div(
-        id='paypal-button-container',
-        style={
-            "min-height": "45px",
-            "margin-top": "20px"
-        }
+        id="paypal-button-container", style={"min-height": "45px", "margin-top": "20px"}
     )
 
     if user:
@@ -108,14 +111,16 @@ def full_layout(user=False):
 
     return dmc.Container(
         [
-            dcc.Location(id='redirect', refresh=True),
-            dcc.Store(id='paypal-store', data={''
-                                               'scriptLoaded': False,
-                                               'clientId': current_app.config['PAYPAL_CLIENT_ID'],
-                                               'planId': current_app.config['PAYPAL_PLAN_ID'],
-                                               }
-                      ),
-            dcc.Store(id='subscription-status'),
+            dcc.Location(id="redirect", refresh=True),
+            dcc.Store(
+                id="paypal-store",
+                data={
+                    "" "scriptLoaded": False,
+                    "clientId": current_app.config["PAYPAL_CLIENT_ID"],
+                    "planId": current_app.config["PAYPAL_PLAN_ID"],
+                },
+            ),
+            dcc.Store(id="subscription-status"),
             dmc.Grid(
                 [
                     dmc.Stack(
@@ -307,12 +312,15 @@ def full_layout(user=False):
 @callback(
     Output("confirmation-modal", "opened", allow_duplicate=True),
     Output("redirect", "pathname"),
-    [Input("use-free-button", "n_clicks")],
-    [State("subscription-status", "data")],
-    prevent_initial_call=True
+    Input("use-free-button", "n_clicks"),
+    Input("signup-button", "n_clicks"),
+    State("subscription-status", "data"),
+    prevent_initial_call=True,
 )
-def open_modal(n_clicks, subscription_status):
-    if subscription_status and subscription_status.get("active"):
+def open_modal(n_clicks, sign_up, subscription_status):
+    if ctx.triggered_id == "signup-button":
+        return no_update, "/login"
+    elif subscription_status and subscription_status.get("active"):
         return True, no_update
     else:
         return no_update, current_app.config["URL_EXPLORER"]
@@ -322,7 +330,7 @@ def open_modal(n_clicks, subscription_status):
 @callback(
     Output("confirmation-modal", "opened", allow_duplicate=True),
     [Input("close-modal-button", "n_clicks")],
-    prevent_initial_call=True
+    prevent_initial_call=True,
 )
 def close_modal(n_clicks):
     return False
@@ -335,7 +343,7 @@ def close_modal(n_clicks):
     Output("paypal-store", "data", allow_duplicate=True),
     Output("page-location", "href"),
     [Input("confirm-cancel-button", "n_clicks")],
-    prevent_initial_call=True
+    prevent_initial_call=True,
 )
 def cancel_subscription(n_clicks, socket_id):
     if session.get("user"):
@@ -343,11 +351,16 @@ def cancel_subscription(n_clicks, socket_id):
         payment_gateway = PaymentGateway()
         result = payment_gateway.cancel_subscription(user_id)
         if result["item"] is False:
-            return True, result, {
-                'scriptLoaded': True,
-                'clientId': current_app.config["PAYPAL_CLIENT_ID"],
-                'planId': current_app.config["PAYPAL_PLAN_ID"]
-            }, current_app.config["URL_PRICING"]
+            return (
+                True,
+                result,
+                {
+                    "scriptLoaded": True,
+                    "clientId": current_app.config["PAYPAL_CLIENT_ID"],
+                    "planId": current_app.config["PAYPAL_PLAN_ID"],
+                },
+                current_app.config["URL_PRICING"],
+            )
     else:
         return no_update, no_update, current_app.config["URL_EXPLORER"]
 
@@ -356,7 +369,7 @@ def cancel_subscription(n_clicks, socket_id):
     Output("paypal-store", "data", allow_duplicate=True),
     Output("subscription-status", "data", allow_duplicate=True),
     [Input("interval-component", "n_intervals")],
-    prevent_initial_call=True
+    prevent_initial_call=True,
 )
 def load_paypal_script(n_intervals):
     if session.get("user"):
@@ -364,27 +377,37 @@ def load_paypal_script(n_intervals):
         subscription_service = SubscriptionService()
         result = subscription_service.has_active_subscription(user_id)
         if result["error"] is False:
-            subscription_status = {
-                "active": None,
-                "subscription_id": None
-            }
+            subscription_status = {"active": None, "subscription_id": None}
         else:
             subscription_status = {
                 "active": result["item"]["has_active"],
-                "subscription_id": result["item"]["subscription"]["subscription_id"]
+                "subscription_id": result["item"]["subscription"]["subscription_id"],
             }
         return {
-            'scriptLoaded': True,
-            'clientId': current_app.config['PAYPAL_CLIENT_ID'],
-            'planId': current_app.config['PAYPAL_PLAN_ID']
+            "scriptLoaded": True,
+            "clientId": current_app.config["PAYPAL_CLIENT_ID"],
+            "planId": current_app.config["PAYPAL_PLAN_ID"],
         }, subscription_status
     else:
         return {
-            'scriptLoaded': True,
-            'clientId': current_app.config['PAYPAL_CLIENT_ID'],
-            'planId': current_app.config['PAYPAL_PLAN_ID']
+            "scriptLoaded": True,
+            "clientId": current_app.config["PAYPAL_CLIENT_ID"],
+            "planId": current_app.config["PAYPAL_PLAN_ID"],
         }, no_update
 
+
+clientside_callback(
+    """function(n_clicks) {
+        console.log(n_clicks);
+            if (n_clicks) {
+                window.location.href = '/login';
+            }
+            return dash_clientside.no_update
+""",
+    Output("signup-button", "n_clicks"),
+    Input("signup-button", "n_clicks"),
+    prevent_initial_call=True,
+)
 
 clientside_callback(
     """
@@ -466,7 +489,7 @@ clientside_callback(
     """,
     Output("paypal-button-container", "children"),
     Input("paypal-store", "data"),
-    prevent_initial_call=True
+    prevent_initial_call=True,
 )
 
 

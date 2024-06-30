@@ -47,11 +47,15 @@ class Config:
     AWS_SECRET_KEY = environ.get("BUCKETEER_AWS_SECRET_ACCESS_KEY")
     AWS_REGION = environ.get("BUCKETEER_AWS_REGION")
 
-    PAYPAL_SANDBOX = environ.get("PAYPAL_SANDBOX")
+    PAYPAL_SANDBOX = environ.get("PAYPAL_SANDBOX", True)
     PAYPAL_CLIENT_ID = environ.get("PAYPAL_CLIENT_ID")
     PAYPAL_CLIENT_SECRET = environ.get("PAYPAL_CLIENT_SECRET")
     PAYPAL_PLAN_ID = environ.get("PAYPAL_PLAN_ID")
-    PAYPAL_API_BASE_URL = 'https://api-m.sandbox.paypal.com' if PAYPAL_SANDBOX else 'https://api.paypal.com'
+    PAYPAL_API_BASE_URL = (
+        "https://api-m.sandbox.paypal.com"
+        if PAYPAL_SANDBOX
+        else "https://api.paypal.com"
+    )
 
 
 class URL:
