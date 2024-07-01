@@ -120,6 +120,7 @@ def full_layout(user=False):
                     "planId": current_app.config["PAYPAL_PLAN_ID"],
                 },
             ),
+            dcc.Store(id="update_session", data=False),
             dcc.Store(id="subscription-status"),
             dmc.Grid(
                 [

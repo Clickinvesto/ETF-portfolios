@@ -1,3 +1,4 @@
+from locale import currency
 import dash
 import os
 import sys
@@ -23,6 +24,7 @@ from flask_redmail import RedMail
 from flask_migrate import Migrate
 from src.admin.s3FileAdmin import S3FileAdmin
 from src.services.logging import configure_logger
+from flask_admin.contrib.sqla import ModelView
 
 path = Path(__file__).resolve().parent / "Dash"
 # Get the directory containing your `src` folder
@@ -40,6 +42,10 @@ if not log_path.is_dir():
 class CustomFileAdmin(FileAdmin):
     can_delete_dirs = False
     can_mkdir = False
+
+
+class PaypalPlanView(ModelView):
+    column_list = ("plan_id", "name", "description", "price", "currency")
 
 
 admin_manager = Admin(template_mode="bootstrap4", index_view=AdminIndexView())
@@ -77,6 +83,7 @@ def create_app():
         # Add more options as needed
     }
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = engine_config
+    app.config["SECRET_KEY"] = "your_secret_key"
     # if os.environ.get("ENVIRONMENT") == "local":
     #    if not os.path.exists(log_path):
     #        os.mkdir(log_path)
@@ -101,6 +108,8 @@ def create_app():
 
     @app.before_request
     def check_login():
+        app.logger.debug("Headers: %s", request.headers)
+        app.logger.debug("Body: %s", request.get_data())
         block_list = ["/composition"]
         # Check if the requested route is whitelisted
         if request.method == "GET":
@@ -160,6 +169,7 @@ def create_app():
 
         # Integrate the dash application
         from .auth import routes as auth
+        from .models import PaypalPlans, PaypalSubscription, Purchases, Plan
 
         # Register admin views for managing user and uploading files
         from .models import User
@@ -167,6 +177,9 @@ def create_app():
         admin_manager.add_view(
             CustomFileAdmin(log_path, name="Log Files", endpoint="log")
         )
+        admin_manager.add_view(ModelView(User, db.session))
+        admin_manager.add_view(ModelView(PaypalPlans, db.session))
+        admin_manager.add_view(ModelView(PaypalSubscription, db.session))
         admin_manager.add_view(
             CustomFileAdmin(path / "config", name="Config Files", endpoint="config")
         )

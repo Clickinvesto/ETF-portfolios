@@ -24,6 +24,7 @@ class Config:
     uri = environ.get("DATABASE_URL", "sqlite:///database.db")
     if uri and uri.startswith("postgres://"):
         uri = uri.replace("postgres://", "postgresql://", 1)
+
     SQLALCHEMY_DATABASE_URI = uri
     SQLALCHEMY_ECHO = False
     SQLALCHEMY_TRACK_MODIFICATIONS = False
