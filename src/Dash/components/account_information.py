@@ -85,64 +85,64 @@ def create_credit_card_paper(credit_cards, openpay_id, subscription_card_ids):
         html.Div(
             id="credit_cards_display",
             children=(
-                    [
-                        html.Div(
-                            [
-                                dmc.ActionIcon(
-                                    DashIconify(
-                                        icon=(
-                                            "radix-icons:minus-circled"
-                                            if card["id"] not in subscription_card_ids
-                                            else "radix-icons:check-circled"
-                                        ),
-                                        width=20,
-                                    ),
-                                    id=(
-                                        {
-                                            "type": "delete_credit_card",
-                                            "card_id": card["id"],
-                                            "customer_id": openpay_id,
-                                        }
+                [
+                    html.Div(
+                        [
+                            dmc.ActionIcon(
+                                DashIconify(
+                                    icon=(
+                                        "radix-icons:minus-circled"
                                         if card["id"] not in subscription_card_ids
-                                        else {"type": "used_credit_card"}
+                                        else "radix-icons:check-circled"
                                     ),
-                                    size="lg",
-                                    variant="filled",
-                                    style={
-                                        "background": "transparent",
-                                        "color": (
-                                            "red"
-                                            if card["id"] not in subscription_card_ids
-                                            else "yellow"
-                                        ),
-                                        "position": "absolute",
-                                        "top": "150px",
-                                        "right": "0px",
-                                        "border": "none",
-                                        "cursor": (
-                                            "pointer"
-                                            if card["id"] not in subscription_card_ids
-                                            else "default"
-                                        ),
-                                        "zIndex": 999,
-                                    },
+                                    width=20,
                                 ),
-                                dcs.DashCreditCards(
-                                    number=card["card_number"],
-                                    name=card["holder_name"],
-                                    expiry=f"{card['expiration_month']}/{card['expiration_year']}",
-                                    issuer=card["brand"],
+                                id=(
+                                    {
+                                        "type": "delete_credit_card",
+                                        "card_id": card["id"],
+                                        "customer_id": openpay_id,
+                                    }
+                                    if card["id"] not in subscription_card_ids
+                                    else {"type": "used_credit_card"}
                                 ),
-                            ],
-                            style={
-                                "position": "relative",
-                                "padding": "0px",
-                                "borderRadius": "15px",
-                            },
-                        )
-                        for card in credit_cards
-                    ]
-                    or [html.Div("No cards available")]
+                                size="lg",
+                                variant="filled",
+                                style={
+                                    "background": "transparent",
+                                    "color": (
+                                        "red"
+                                        if card["id"] not in subscription_card_ids
+                                        else "yellow"
+                                    ),
+                                    "position": "absolute",
+                                    "top": "150px",
+                                    "right": "0px",
+                                    "border": "none",
+                                    "cursor": (
+                                        "pointer"
+                                        if card["id"] not in subscription_card_ids
+                                        else "default"
+                                    ),
+                                    "zIndex": 999,
+                                },
+                            ),
+                            dcs.DashCreditCards(
+                                number=card["card_number"],
+                                name=card["holder_name"],
+                                expiry=f"{card['expiration_month']}/{card['expiration_year']}",
+                                issuer=card["brand"],
+                            ),
+                        ],
+                        style={
+                            "position": "relative",
+                            "padding": "0px",
+                            "borderRadius": "15px",
+                        },
+                    )
+                    for card in credit_cards
+                ]
+                or [html.Div("No cards available")]
             ),
             style={
                 "display": "flex",
@@ -174,16 +174,17 @@ def create_paypal_subscription_paper(user_id):
                     },
                 ),
                 dmc.Space(h=10),
-                dmc.Text("No subscription found.", size="lg", )
+                dmc.Text(
+                    "No subscription found.",
+                    size="lg",
+                ),
             ],
-            style={
-                "radius": "md",
-                "margin": "10px"
-            },
+            style={"radius": "md", "margin": "10px"},
         )
 
-    subscription_details = payment_gateway.fetch_subscription(subscription.subscription_id)
-
+    subscription_details = payment_gateway.fetch_subscription(
+        subscription.subscription_id
+    )
     if subscription_details["error"]:
         return html.Div(
             children=[
@@ -196,27 +197,28 @@ def create_paypal_subscription_paper(user_id):
                     },
                 ),
                 dmc.Space(h=10),
-                dmc.Text(f"Error fetching subscription: {subscription_details['error']}", size="lg")
+                dmc.Text(
+                    f"Error fetching subscription: {subscription_details['error']}",
+                    size="lg",
+                ),
             ],
-            style={
-                "radius": "md",
-                "margin": "10px"
-            },
+            style={"radius": "md", "margin": "10px"},
         )
 
     details = subscription_details["item"]
     plan_id = details["plan_id"]
     plan = PaypalPlans.query.filter_by(plan_id=plan_id).first()
     trial_period = subscription_service.is_trial_period_over(details["billing_info"])
-    trial_badge = dmc.Badge("Trial", color="red", style={"cursor": "default"}) if trial_period else None
-
+    trial_badge = (
+        dmc.Badge("Trial", color="red", style={"cursor": "default"})
+        if trial_period
+        else None
+    )
     return html.Div(
         children=[
-            dcc.Store(id='subscription-id', data=details["id"]),
-            dcc.Store(id='cancel-subscription-response'),
-            dmc.NotificationProvider(
-                id="cancel-subscription-notification"
-            ),
+            dcc.Store(id="subscription-id", data=details["id"]),
+            dcc.Store(id="cancel-subscription-response"),
+            dmc.NotificationProvider(id="cancel-subscription-notification"),
             dmc.Text(
                 "Subscription Plan:",
                 size="lg",
@@ -228,16 +230,29 @@ def create_paypal_subscription_paper(user_id):
             dmc.Space(h=10),
             dmc.Group(
                 [
-                    dmc.Group([
-                        dmc.Text(f"{plan.name} Plan", fw=400),
-                        dmc.Text(f"({plan_id})", size="sm", c="dimmed"),
-                    ]),
-                    dmc.Group([
-                        trial_badge if trial_badge else None,
-                        dmc.Badge("Active" if subscription.status == 'ACTIVE' else "Expired",
-                                  color="green" if subscription.status == 'ACTIVE' else "red",
-                                  style={"cursor": "default"}),
-                    ],
+                    dmc.Group(
+                        [
+                            dmc.Text(f"{plan.name} Plan", fw=400),
+                            # dmc.Text(f"({plan_id})", size="sm", c="dimmed"),
+                        ]
+                    ),
+                    dmc.Group(
+                        [
+                            trial_badge if trial_badge else None,
+                            dmc.Badge(
+                                (
+                                    "Active"
+                                    if subscription.status == "ACTIVE"
+                                    else "Expired"
+                                ),
+                                color=(
+                                    "green"
+                                    if subscription.status == "ACTIVE"
+                                    else "red"
+                                ),
+                                style={"cursor": "default"},
+                            ),
+                        ],
                         justify="space-between",
                         style={
                             "display": "flex",
@@ -260,29 +275,34 @@ def create_paypal_subscription_paper(user_id):
             dmc.Group(
                 [
                     dmc.Text(f"Payment Date: ", size="sm"),
-                    dmc.Text(f"{subscription.start_date.strftime('%Y-%m-%d')}",
-                             c="blue" if subscription.status == 'ACTIVE' else "red", size="sm"),
+                    dmc.Text(
+                        f"{subscription.start_date.strftime('%Y-%m-%d')}",
+                        c="blue" if subscription.status == "ACTIVE" else "red",
+                        size="sm",
+                    ),
                 ],
                 style={
                     "direction": "column",
                     "align": "flex-start",
                     "spacing": "xs",
                     "marginTop": "md",
-                }
+                },
             ),
             dmc.Group(
                 [
                     dmc.Text(f"Active till date: ", size="sm"),
                     dmc.Text(
                         f"{subscription.next_billing_date.strftime('%Y-%m-%d') if subscription.next_billing_date else 'N/A'}",
-                        c="blue" if subscription.status == 'ACTIVE' else "red", size="sm"),
+                        c="blue" if subscription.status == "ACTIVE" else "red",
+                        size="sm",
+                    ),
                 ],
                 style={
                     "direction": "column",
                     "align": "flex-start",
                     "spacing": "xs",
                     "marginTop": "md",
-                }
+                },
             ),
             dmc.Group(
                 [
@@ -291,23 +311,17 @@ def create_paypal_subscription_paper(user_id):
                         leftSection=DashIconify(icon="radix-icons:cross-1"),
                         color="blue",
                         size="xs",
-                        disabled=False if subscription.status == 'ACTIVE' else True,
+                        disabled=False if subscription.status == "ACTIVE" else True,
                         id="cancel-subscription-btn",
-                        style={
-                            "marginTop": "md",
-                            "radius": "md"
-                        },
+                        style={"marginTop": "md", "radius": "md"},
                     ),
                 ],
                 style={
                     "display": "flex",
                     "direction": "row",
                     "justify-content": "flex-end",
-                }
-            )
+                },
+            ),
         ],
-        style={
-            "radius": "md",
-            "margin": "10px"
-        },
+        style={"radius": "md", "margin": "10px"},
     )
