@@ -183,7 +183,7 @@ def create_app():
             CustomFileAdmin(log_path, name="Log Files", endpoint="log")
         )
         admin_manager.add_view(ModelView(User, db.session))
-        admin_manager.add_view(ModelView(PaypalPlans, db.session, name="Simon"))
+        admin_manager.add_view(ModelView(PaypalPlans, db.session))
         admin_manager.add_view(ModelView(PaypalSubscription, db.session))
         admin_manager.add_view(
             CustomFileAdmin(path / "config", name="Config Files", endpoint="config")
