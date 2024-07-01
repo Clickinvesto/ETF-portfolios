@@ -45,10 +45,18 @@ class CustomFileAdmin(FileAdmin):
 
 
 class PaypalPlanView(ModelView):
-    column_list = ("plan_id", "name", "description", "price", "currency")
+    def on_model_change(self, form, model, is_created):
+        """Called when creating or updating a user model."""
+        # Check if the password field is present in the form data
+        print(form)
+
+        # Call the superclass implementation
+        return super().on_model_change(form, model, is_created)
 
 
-admin_manager = Admin(template_mode="bootstrap4", index_view=AdminIndexView())
+admin_manager = Admin(
+    template_mode="bootstrap4", index_view=AdminIndexView(), name=f"Admin Panel"
+)
 db = SQLAlchemy()
 login_manager = LoginManager()
 mail = RedMail()
@@ -83,7 +91,6 @@ def create_app():
         # Add more options as needed
     }
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = engine_config
-    app.config["SECRET_KEY"] = "your_secret_key"
     # if os.environ.get("ENVIRONMENT") == "local":
     #    if not os.path.exists(log_path):
     #        os.mkdir(log_path)
@@ -176,7 +183,7 @@ def create_app():
             CustomFileAdmin(log_path, name="Log Files", endpoint="log")
         )
         admin_manager.add_view(ModelView(User, db.session))
-        admin_manager.add_view(ModelView(PaypalPlans, db.session))
+        admin_manager.add_view(ModelView(PaypalPlans, db.session, name="Simon"))
         admin_manager.add_view(ModelView(PaypalSubscription, db.session))
         admin_manager.add_view(
             CustomFileAdmin(path / "config", name="Config Files", endpoint="config")
@@ -194,7 +201,19 @@ def create_app():
 
         # Create Database Models
         db.create_all()
+        try:
+            PaypalPlans(
+                plan_id="P-0WC16321VC6721344MZ5EIRY",
+                name="Silver",
+                price=7,
+                currency="USD",
+                interval_unit="Days",
+                interval_count=30,
+            )
+        except:
+            pass
         """
+        
         if (
             User.query.filter_by(email=current_app.config["ADMIN_EMAIL"]).first()
             is None
