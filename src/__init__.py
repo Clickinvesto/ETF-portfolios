@@ -108,8 +108,6 @@ def create_app():
 
     @app.before_request
     def check_login():
-        app.logger.debug("Headers: %s", request.headers)
-        app.logger.debug("Body: %s", request.get_data())
         block_list = ["/composition"]
         # Check if the requested route is whitelisted
         if request.method == "GET":
