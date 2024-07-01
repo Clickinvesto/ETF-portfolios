@@ -201,8 +201,10 @@ def create_app():
 
         # Create Database Models
         db.create_all()
+
         try:
-            PaypalPlans(
+            plan = PaypalPlans(
+                id=312,
                 plan_id="P-0WC16321VC6721344MZ5EIRY",
                 name="Silver",
                 price=7,
@@ -210,7 +212,7 @@ def create_app():
                 interval_unit="Days",
                 interval_count=30,
             )
-            db.session.add(PaypalPlans)
+            db.session.add(plan)
             db.session.commit()
         except:
             pass
