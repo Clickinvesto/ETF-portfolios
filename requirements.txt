@@ -57,7 +57,6 @@ MarkupSafe==2.1.5
 multiprocess==0.70.16
 nest-asyncio==1.6.0
 numpy==1.26.4
-openpay @ git+https://github.com/Simon-U/openpay-fork.git@3b4dee0c724331fb4cdf9b9b12e95e12e9608dd6
 packaging==24.0
 pandas==2.2.2
 plotly==5.21.0
