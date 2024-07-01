@@ -204,7 +204,6 @@ def create_app():
 
         try:
             plan = PaypalPlans(
-                id=312,
                 plan_id="P-0WC16321VC6721344MZ5EIRY",
                 name="Silver",
                 price=7,
