@@ -210,6 +210,8 @@ def create_app():
                 interval_unit="Days",
                 interval_count=30,
             )
+            db.session.add(PaypalPlans)
+            db.session.commit()
         except:
             pass
         """
