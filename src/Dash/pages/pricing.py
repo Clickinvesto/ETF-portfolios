@@ -492,9 +492,3 @@ clientside_callback(
     Input("paypal-store", "data"),
     prevent_initial_call=True,
 )
-
-
-# email: info@pure-inference.com : JA2j@uWq
-# This is the sandbox application
-# Link: https://sandbox.paypal.com
-# Email: sb-17qmz31300247@business.example.com : xw{-?U3&

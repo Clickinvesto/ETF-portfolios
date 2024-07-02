@@ -24,7 +24,6 @@ class User(UserMixin, db.Model):
     created = db.Column(db.DateTime, index=False, unique=False, nullable=False)
     last_login = db.Column(db.DateTime, index=False, unique=False, nullable=True)
     subscription = db.Column(db.String(200))
-    openpay_id = db.Column(db.String(200))
     data_consent = db.Column(db.Boolean, index=False, unique=False, nullable=False, default=False)
 
     def set_password(self, password):
@@ -49,6 +48,11 @@ class User(UserMixin, db.Model):
         new_user.set_password(password)
         db.session.add(new_user)
         db.session.commit()
+
+    def get_active_subscription(self):
+        active_subscription = PaypalSubscription.query.filter_by(user_id=self.id, status='ACTIVE').first()
+        
+        return active_subscription
 
     def __repr__(self):
         return "<User {}>".format(self.email)

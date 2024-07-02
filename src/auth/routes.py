@@ -82,6 +82,23 @@ def get_current_user():
 
 @auth_bp.route(current_app.config["URL_LOGIN"], methods=["GET", "POST"])
 def login():
+
+    def update_user_session_status(user_obj):
+        active_subscription = user_obj.get_active_subscription()
+        user_obj_dict = {
+            key: user_obj.__dict__[key]
+            for key in ["id", "email", "is_admin", "subscription"]
+        }
+        if active_subscription is None:
+            user_obj.subscription = None
+            user_obj_dict["subscription"] = None
+        else:
+            user_obj.subscription = active_subscription.subscription_id
+            user_obj_dict["subscription"] = active_subscription.subscription_id
+
+        session["user"] = user_obj_dict
+        db.session.commit()
+
     # First we check if the user is already authenticated and directly bring him to the userPage
     # We need to get the right URL for that from the blueprints
     loginForm = LoginForm()
@@ -90,31 +107,9 @@ def login():
         # Log the new last login
         current_user.last_login = datetime.now()
 
-        result = api.fetch_active_subscription(
-            current_user.__dict__.get("openpay_id", None)
-        )
-        # On log in we check if the user have an active subscription
-        user_dict = {
-            key: current_user.__dict__[key]
-            # ToDo remove the "openpay_id" from dictionary
-            for key in ["id", "email", "is_admin", "subscription", "openpay_id"]
-        }
-        if not result["item"]:
-            current_user.subscription = None
-            user_dict["subscription"] = None
-        else:
-            # PRocess active subscription
-            subscription = result["item"]
-            if subscription.cancel_at_period_end:
-                subsc = subscription["period_end_date"]
-            else:
-                subsc = subscription["status"]
-            current_user.subscription = subsc
-            user_dict["subscription"] = subsc
+        update_user_session_status(user_obj=current_user)
 
-        session["user"] = user_dict
-        db.session.commit()
-        # Bring the user to the page he wanted to after lgin
+        # Bring the user to the page he wanted to after login
         if "url" in session:
             if session["url"]:
                 url = session["url"]
@@ -158,38 +153,9 @@ def login():
             login_user(user)
             user.last_login = datetime.now()
 
-            # Debug: Print the keys of the user.__dict__ dictionary
-            # print("User dictionary keys:", user.__dict__.keys())
+            update_user_session_status(user_obj=user)
 
-            # result = api.fetch_active_subscription(
-            #     user.__dict__.get("openpay_id", None)
-            # )
-            result = subscription_service.get_latest_user_subscription(
-                user.__dict__.get("id", None)
-            )
-            # On log in we check if the user have an active subscription
-            user_dict = {
-                key: user.__dict__[key]
-                # ToDo remove the "openpay_id" from dictionary
-                for key in ["id", "email", "is_admin", "subscription", "openpay_id"]
-            }
-            if not result["item"]:
-                user.subscription = None
-                user_dict["subscription"] = None
-            else:
-                # Process active subscription
-                subscription = result["item"]
-                if subscription.subscription_id:
-                    subsc = subscription.subscription_id
-                else:
-                    subsc = subscription.status
-                user.subscription = subsc
-                user_dict["subscription"] = subsc
-
-            session["user"] = user_dict
-            db.session.commit()
-
-            # Redirect the user to the right page, depending if admin or not
+            # Redirect the user to the right page, depends upon if admin or not
             if "url" in session:
                 if session["url"]:
                     url = session["url"]

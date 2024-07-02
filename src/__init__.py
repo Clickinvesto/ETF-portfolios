@@ -119,6 +119,7 @@ def create_app():
         # Check if the requested route is whitelisted
         if request.method == "GET":
             if current_user:
+                user = session.get("user", None)
                 if request.path not in block_list:
                     # Free path, move on
                     return
@@ -129,7 +130,7 @@ def create_app():
                         category="warning",
                     )
                     return redirect("/login")
-                elif request.path in block_list and current_user.subscription == "0":
+                elif request.path in block_list and user.get("subscription", None) is None:
                     # The user as an account but no subscription -> go to pricing
                     return redirect("/pricing")
                 else:
