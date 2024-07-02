@@ -417,21 +417,21 @@ clientside_callback(
         var paypalClientId = storeData.clientId;
         var paypalPlanId = storeData.planId;
         
-        console.log("Script Loaded: ", scriptLoaded);
-        console.log("PayPal Client ID: ", paypalClientId);
-        console.log("PayPal Plan ID: ", paypalPlanId);
+        //console.log("Script Loaded: ", scriptLoaded);
+        //console.log("PayPal Client ID: ", paypalClientId);
+        //console.log("PayPal Plan ID: ", paypalPlanId);
         
         if (!scriptLoaded || !paypalClientId) {
-            console.log("Script not loaded or PayPal Client ID missing");
+            //console.log("Script not loaded or PayPal Client ID missing");
             return window.dash_clientside.no_update;
         }
         if (document.querySelector("[id^='zoid-paypal-buttons-uid_']")) {
-            console.log("PayPal button already rendered");
+            //console.log("PayPal button already rendered");
             return window.dash_clientside.no_update;
         }
         if (document.getElementById('paypal-sdk')) {
             // Script already exists, just render the button
-            console.log("PayPal SDK script already exists, rendering button...");
+            //console.log("PayPal SDK script already exists, rendering button...");
             renderPayPalButton();
             return window.dash_clientside.no_update;
         }
@@ -440,13 +440,13 @@ clientside_callback(
         script.id = 'paypal-sdk';
         script.src = 'https://www.paypal.com/sdk/js?client-id=' + paypalClientId + '&components=buttons&currency=USD&vault=true&intent=subscription';
         script.onload = function () {
-            console.log("PayPal SDK script loaded, rendering button...");
+            //console.log("PayPal SDK script loaded, rendering button...");
             renderPayPalButton(paypalClientId, paypalPlanId);
         };
         // Append the script to the body
         document.body.appendChild(script);
         function renderPayPalButton(clientID, planID) {
-            console.log("Rendering PayPal button with Client ID:", clientID, "and Plan ID:", planID);
+            //console.log("Rendering PayPal button with Client ID:", clientID, "and Plan ID:", planID);
             paypal.Buttons({
                 fundingSource: paypal.FUNDING.PAYPAL,
                 style: {
@@ -457,15 +457,15 @@ clientside_callback(
                     tagline: false
                 },
                 createSubscription: function(data, actions) {
-                    console.log("Creating subscription with Plan ID:", planID);
+                    //console.log("Creating subscription with Plan ID:", planID);
                     return actions.subscription.create({
                         'plan_id': planID
                     });
                 },
                 onApprove: function(data, actions) {
-                    console.log("Subscription approved with data:", data);
+                    //console.log("Subscription approved with data:", data);
                     return actions.subscription.get().then(function(details) {
-                        console.log("Subscription details:", details);
+                        //console.log("Subscription details:", details);
                         // Send subscription details to server
                         fetch('/save-subscription', {
                             method: 'POST',
@@ -477,7 +477,7 @@ clientside_callback(
                                 details: details
                             })
                         }).then(function(response) {
-                            console.log("Server response:", response);
+                            //console.log("Server response:", response);
                             return response.json();
                         }).then(function(data) {
                             console.log("Response data:", data);
@@ -492,9 +492,3 @@ clientside_callback(
     Input("paypal-store", "data"),
     prevent_initial_call=True,
 )
-
-
-# email: info@pure-inference.com : JA2j@uWq
-# This is the sandbox application
-# Link: https://sandbox.paypal.com
-# Email: sb-17qmz31300247@business.example.com : xw{-?U3&
