@@ -35,6 +35,23 @@ auth_bp = Blueprint(
 )
 
 
+def update_user_session_status(user_obj):
+    active_subscription = user_obj.get_active_subscription()
+    user_obj_dict = {
+        key: user_obj.__dict__[key]
+        for key in ["id", "email", "is_admin", "subscription"]
+    }
+    if active_subscription is None:
+        user_obj.subscription = None
+        user_obj_dict["subscription"] = None
+    else:
+        user_obj.subscription = active_subscription.subscription_id
+        user_obj_dict["subscription"] = active_subscription.subscription_id
+
+    session["user"] = user_obj_dict
+    db.session.commit()
+
+
 def flash_errors(form):
     """Flashes form errors"""
     for field, errors in form.errors.items():
@@ -82,22 +99,6 @@ def get_current_user():
 
 @auth_bp.route(current_app.config["URL_LOGIN"], methods=["GET", "POST"])
 def login():
-
-    def update_user_session_status(user_obj):
-        active_subscription = user_obj.get_active_subscription()
-        user_obj_dict = {
-            key: user_obj.__dict__[key]
-            for key in ["id", "email", "is_admin", "subscription"]
-        }
-        if active_subscription is None:
-            user_obj.subscription = None
-            user_obj_dict["subscription"] = None
-        else:
-            user_obj.subscription = active_subscription.subscription_id
-            user_obj_dict["subscription"] = active_subscription.subscription_id
-
-        session["user"] = user_obj_dict
-        db.session.commit()
 
     # First we check if the user is already authenticated and directly bring him to the userPage
     # We need to get the right URL for that from the blueprints
@@ -299,7 +300,6 @@ def resent_email():
                 category="warning",
             )
             jsonify("Problem with Emails")
-            print(e)
 
     flash("There is no user with this Email", category="warning")
     return jsonify("This Email is not registered")
@@ -432,5 +432,6 @@ def save_subscription():
     new_subscription = subscription_service.save_subscription(
         user_id, subscription_id, details
     )
+    update_user_session_status(user_obj=current_user)
 
     return jsonify({"message": "Subscription saved successfully"})
