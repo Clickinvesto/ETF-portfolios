@@ -1,5 +1,4 @@
 import json
-
 import polars as pl
 from pathlib import Path
 import plotly.graph_objects as go
@@ -67,7 +66,7 @@ class plotting_engine:
 
         self.figure = fig
 
-    def make_dispersion_plot(self, data):
+    def make_dispersion_plot(self, data, dropdown_value=None):
         self.update_config()
         configuration = self.cofiguration.get("dispersion")
         self.init_graph(configuration)
@@ -113,15 +112,38 @@ class plotting_engine:
         )
 
         ref_series = configuration.get("reference_series")
-        self.add_RI(
-            data.filter(pl.col("Series") == "RI")
-            .select(configuration.get("y_value", "CAGR"))
-            .item(0, 0),
-            data.filter(pl.col("Series") == "RI")
-            .select(configuration.get("x_value", "Risk"))
-            .item(0, 0),
-        )
+        ri_cagr = data.filter(pl.col("Series") == "RI").select(configuration.get("y_value", "CAGR")).item(0, 0)
+        ri_risk = data.filter(pl.col("Series") == "RI").select(configuration.get("x_value", "Risk")).item(0, 0)
+        self.add_RI(ri_cagr, ri_risk)
 
+        # Add dropdown
+        self.figure.update_layout(
+            updatemenus=[
+                dict(
+                    buttons=list([
+                        dict(
+                            args=["store", "All Portfolios"],
+                            label="All Portfolios",
+                            method="relayout"
+                        ),
+                        dict(
+                            args=["store", "Better than RI"],
+                            label="Better than RI",
+                            method="relayout"
+                        )
+                    ]),
+                    direction="down",
+                    pad={"l": -50, "t": -10},
+                    showactive=True,
+                    x=0.1,
+                    xanchor="left",
+                    y=1.1,
+                    yanchor="top",
+                    font=dict(size=13),
+                    active=0 if dropdown_value is None else (0 if dropdown_value == "All Portfolios" else 1),
+                ),
+            ]
+        )
         return self.figure
 
     def make_performance_plot(self, data, series):

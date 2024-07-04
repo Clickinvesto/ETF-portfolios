@@ -7,19 +7,12 @@ from dash import (
     Input,
     Output,
     State,
-    ctx,
     no_update,
-    ALL,
-    clientside_callback,
 )
-import logging
+import polars as pl
 from flask import current_app
-from flask_login import current_user
 from dash.exceptions import PreventUpdate
-
 from dash_iconify import DashIconify
-
-from src.Dash.components.header import make_header
 from src.Dash.services.calculation import LocalAPI
 from src.Dash.services.graph import plotting_engine, blank_fig
 from src.Dash.components.cagr_risk_table import make_cagr_risk_table
@@ -42,6 +35,8 @@ def layout(socket_ids=None, **kwargs):
 def full_layout():
     return dmc.Container(
         [
+            dcc.Store(id="initial-data-store"),
+            dcc.Store(id='dropdown-state'),
             dmc.Title("Portfolio Exploration", order=2),
             dmc.Flex(
                 [
@@ -86,26 +81,31 @@ def full_layout():
 
 
 @callback(
-    Output("dispersion_plot", "figure"),
-    Output("dispersion_plot", "selectedData"),
+    Output("dispersion_plot", "figure", allow_duplicate=True),
+    Output("dispersion_plot", "selectedData", allow_duplicate=True),
+    Output("initial-data-store", "data"),
     Input("url", "pathname"),
     State("series_store", "data"),
+    prevent_initial_call='initial_duplicate'
 )
 def init_graph(path, store):
     data = api.get_dispersion_data()
     figure = plotter.make_dispersion_plot(data)
-    if isinstance(store, dict):
-        return figure, store
 
-    return figure, no_update
+    if isinstance(store, dict):
+        return figure, store, data.to_dicts()
+
+    return figure, no_update, data.to_dicts()
 
 
 @callback(
-    Output("performance_plot", "figure"),
-    Output("performance_table", "children"),
-    Output("notify_container", "children", allow_duplicate=True),
-    Output("series_store", "data"),
-    Input("dispersion_plot", "selectedData"),
+    [
+        Output("performance_plot", "figure"),
+        Output("performance_table", "children"),
+        Output("notify_container", "children", allow_duplicate=True),
+        Output("series_store", "data"),
+    ],
+    [Input("dispersion_plot", "selectedData")],
     prevent_initial_call=True,
 )
 def display_click_data(selectedData):
@@ -135,3 +135,44 @@ def display_click_data(selectedData):
         cagr, risk, number_month, reference_series, selected_series
     )
     return figure, table, no_update, selectedData
+
+
+@callback(
+    Output("dropdown-state", "data", allow_duplicate=True),
+    Input("dispersion_plot", "relayoutData"),
+    prevent_initial_call=True
+)
+def update_dropdown_state(relayout_data):
+    if relayout_data and "store" in relayout_data:
+        return relayout_data["store"]
+    return no_update
+
+
+@callback(
+    Output("dropdown-state", "data", allow_duplicate=True),
+    Output("dispersion_plot", "figure"),
+    Input("dropdown-state", "data"),
+    State("dispersion_plot", "figure"),
+    State("initial-data-store", "data"),
+    prevent_initial_call=True
+)
+def update_graph_based_on_dropdown(selection, current_figure, initial_data_store):
+    if selection is None:
+        raise PreventUpdate
+
+    # Retrieve initial data
+    data = pl.DataFrame(initial_data_store)
+
+    # Extract RI data separately
+    ri_data = data.filter(pl.col("Series") == "RI")
+    ri_cagr = ri_data.select("CAGR").item(0, 0)
+
+    if selection == "Better than RI":
+        filtered_data = data.filter((pl.col("Series") != "RI") & (pl.col("CAGR") > ri_cagr))
+    else:
+        filtered_data = data.filter(pl.col("Series") != "RI")
+
+    final_data = pl.concat([filtered_data, ri_data])
+    figure = plotter.make_dispersion_plot(final_data, dropdown_value=selection)
+
+    return selection, figure
