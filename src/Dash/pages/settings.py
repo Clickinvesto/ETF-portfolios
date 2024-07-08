@@ -381,7 +381,7 @@ def callback(set_progress, n_clicks, interval_size, partitions, top_x):
     normalised_df = df[["RI"]].dropna()
     normalised_df["sum"] = (normalised_df["RI"] / normalised_df["RI"].iloc[0]) * 100
 
-    cagr, risk = api.calc_metrics_pandas(normalised_df["sum"])
+    cagr, risk, age = api.calc_metrics_pandas(normalised_df["sum"])
     combination_params = {
         "name": f"RI",
         "combination": str(("RI",)),
@@ -392,6 +392,7 @@ def callback(set_progress, n_clicks, interval_size, partitions, top_x):
         ),
         "cagr": cagr,
         "risk": risk,
+        "age": age,
     }
     combination_params_df = pd.DataFrame([combination_params])
     try:
@@ -424,7 +425,7 @@ def callback(set_progress, n_clicks, interval_size, partitions, top_x):
 
                 weighted_df["sum"] = weighted_df[list(combination)].sum(axis=1)
 
-                cagr, risk = api.calc_metrics_pandas(weighted_df["sum"])
+                cagr, risk, age = api.calc_metrics_pandas(weighted_df["sum"])
 
                 combination_params = {
                     "name": f"x{index}",
@@ -432,6 +433,7 @@ def callback(set_progress, n_clicks, interval_size, partitions, top_x):
                     "weights": str([float(number) for number in weight_comb]),
                     "cagr": cagr,
                     "risk": risk,
+                    "age": age,
                 }
 
                 combination_params_df = pd.DataFrame([combination_params])

@@ -75,6 +75,27 @@ class plotting_engine:
         )
 
         self.figure.update_layout(clickmode="event+select")
+
+        # Calculate Age Categories
+        age_values = data.select("Age").to_series().to_list()
+        min_age = min(age_values)
+        max_age = max(age_values)
+        range_age = max_age - min_age
+        section_length = range_age / 3
+
+        def categorize_age(age):
+            if age <= min_age + section_length:
+                return 'Young'
+            elif age <= min_age + 2 * section_length:
+                return 'Middle'
+            else:
+                return 'Old'
+        age_categories = [categorize_age(age) for age in age_values]
+
+        age_mapping = {'Young': 1, 'Middle': 2, 'Old': 3}
+        age_mapped_values = [age_mapping[category] for category in age_categories]
+
+        hover_text = [f"Age: {age}" for age in age_values]
         self.figure.add_trace(
             go.Scatter(
                 x=data.filter(pl.col("Series") != "RI")
@@ -87,12 +108,18 @@ class plotting_engine:
                 .to_list(),
                 mode="markers",
                 name="Portfolios",
-                text=data.filter(pl.col("Series") != "RI")
-                .select("Series")
-                .to_series()
-                .to_list(),
-                hovertemplate="CAGR: %{y:.2f}%<br>Risk: %{x:.2f}%<extra></extra>",
-                marker=dict(color=self.get_color(configuration.get("color_marker", 5))),
+                text=hover_text,
+                hovertemplate="CAGR: %{y:.2f}%<br>Risk: %{x:.2f}%<br>%{text}<extra></extra>",
+                marker=dict(
+                    color=age_mapped_values,
+                    colorscale=[[0, 'green'], [0.5, 'darkred'], [1, 'gold']],
+                    size=8,
+                    colorbar=dict(
+                        title='Age',
+                        tickvals=[1, 2, 3],
+                        ticktext=['Young', 'Middle', 'Old']
+                    )
+                ),
                 selected={
                     "marker": {
                         "color": self.get_color(configuration.get("selected_color"))
