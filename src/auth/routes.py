@@ -348,6 +348,9 @@ def reset_password():
     email = request.form["email"]
 
     existing_user = User.query.filter_by(email=email).first()
+    if not existing_user:
+        flash("There is no user with this Email", category="warning")
+        return jsonify("This Email is not registered")
     if not existing_user.verified:
         flash(
             "The user is registered but the Email is not verified. Just get a new link below.",
@@ -384,9 +387,6 @@ def reset_password():
             )
             flash("Something went wrong. Please try again", category="warning")
             return jsonify("Something went wrong. Please try again")
-
-    flash("There is no user with this Email", category="warning")
-    return jsonify("This Email is not registered")
 
 
 @auth_bp.route(current_app.config["URL_NEW_PASSWORD"], methods=["GET", "POST"])
