@@ -359,9 +359,9 @@ def reset_password():
                 subject="Reset your password",
                 receivers=email,
                 html_template="reset_password.html",
-                body_params={"token": token, "user_name": existing_user.first_name},
+                body_params={"token": token, "user_name": existing_user.email},
             )
-            flash("We sent you an Email, please check yout inbox.", category="success")
+            flash("We sent you an Email, please check your inbox.", category="success")
             return jsonify("Email sent")
         except Exception as e:
             current_app.logger.error(e, exc_info=True)
@@ -372,6 +372,7 @@ def reset_password():
                 f"USERNAME: {current_app.config['EMAIL_USERNAME']}"
             )
             flash("Something went wrong. Please try again", category="warning")
+            return jsonify("Something went wrong. Please try again")
 
     flash("There is no user with this Email", category="warning")
     return jsonify("This Email is not registered")

@@ -52,14 +52,14 @@ class LocalAPI(S3Mixin):
             file_like_object,
             separator=",",
             low_memory=True,
-            new_columns=["Series", "Combination", "Weights", "CAGR", "Risk"],
+            new_columns=["Series", "Combination", "Weights", "CAGR", "Risk", "Age"],
         )
         logging.error("Finished")
         return df
 
     def get_dispersion_data(self):
         df = self.load_dispersion_data()
-        df = df.select(["Series", "CAGR", "Risk"])
+        df = df.select(["Series", "CAGR", "Risk", "Age"])
         return df
 
     def get_series_combination_weights(self, series):
@@ -102,7 +102,7 @@ class LocalAPI(S3Mixin):
         data = pd.concat(
             [
                 df.loc[normalized_series.index, reference_series]
-                / df.loc[normalized_series.index, reference_series][0]
+                / df.loc[normalized_series.index, reference_series].iloc[0]
                 * 100,
                 combined_series,
             ],
@@ -170,7 +170,7 @@ class CalculateCombinations(LocalAPI):
         risk_count = len(risk_below_one)
         risk_percentage = (risk_count / number_of_months) * 100
 
-        return cagr, risk_percentage
+        return cagr, risk_percentage, number_of_months
 
     def calc_metrics_polars(self, portfolio):
         number_of_month = portfolio.height
