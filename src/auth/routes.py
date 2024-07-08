@@ -278,12 +278,23 @@ def resent_email():
             current_app.config["SECRET_KEY"],
             algorithm="HS256",
         )
+        mail.send(
+            subject="Please verify your email",
+            receivers=[existing_user.email],
+            html_template="new_verify.html",
+            body_params={"token": token, "user_name": existing_user.email},
+        )
+        flash(
+            "Please check your inbox and spam folder. You should have a new Email for verification.",
+            category="success",
+        )
+        return jsonify("Email sent")
         try:
             mail.send(
                 subject="Please verify your email",
                 receivers=existing_user.email,
                 html_template="new_verify.html",
-                body_params={"token": token, "user_name": existing_user.first_name},
+                body_params={"token": token, "user_name": existing_user.email},
             )
             flash(
                 "Please check your inbox and spam folder. You should have a new Email for verification.",

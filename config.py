@@ -6,6 +6,10 @@ load_dotenv(path.join(basedir, ".env"))
 database_path = path.join(basedir, "instance", "database.db")
 
 
+def str_to_bool(value):
+    return str(value).lower() in ("true", "1", "t", "y", "yes")
+
+
 class Config:
     # General Flask configuration
     HOST = environ.get("HOST")
@@ -30,11 +34,14 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # SMTP
+    REDMAIL_USE_SSL = True
     EMAIL_HOST = environ.get("EMAIL_HOST", "localhost")
     EMAIL_PORT = int(environ.get("EMAIL_PORT", 587))
     EMAIL_USERNAME = environ.get("EMAIL_USERNAME", None)
     EMAIL_PASSWORD = environ.get("EMAIL_PASSWORD", None)
     EMAIL_SENDER = environ.get("EMAIL_SENDER", None)
+    USE_SSL = True
+    EMAIL_USE_STARTTLS = str_to_bool(environ.get("EMAIL_USE_STARTTLS", False))
     TOKEN_EXPIRE = 24
 
     OPENPAY_PRODUCTION = False

@@ -1,4 +1,4 @@
-from locale import currency
+import smtplib
 import dash
 import os
 import sys
@@ -59,6 +59,8 @@ admin_manager = Admin(
 )
 db = SQLAlchemy()
 login_manager = LoginManager()
+
+
 mail = RedMail()
 migrate = Migrate()
 
@@ -69,6 +71,7 @@ def create_app():
     app.secret_key = "your_secret_key"
     app.config.from_object("config.Config")
     app.config.from_object("config.URL")
+    app.config["EMAIL_CLS_SMTP"] = smtplib.SMTP_SSL
     # Initialize Plugins and register them with the app
     # Set up logging
 
@@ -130,7 +133,10 @@ def create_app():
                         category="warning",
                     )
                     return redirect("/login")
-                elif request.path in block_list and user.get("subscription", None) is None:
+                elif (
+                    request.path in block_list
+                    and user.get("subscription", None) is None
+                ):
                     # The user as an account but no subscription -> go to pricing
                     return redirect("/pricing")
                 else:
