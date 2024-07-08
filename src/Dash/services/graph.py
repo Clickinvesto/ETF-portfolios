@@ -66,6 +66,36 @@ class plotting_engine:
 
         self.figure = fig
 
+    def prepare_age(self, data):
+        color_dict = {"young": "#a8d4ff", "middle": "#0b88ff", "old": "#002446"}
+
+        # Calculate Age Categories
+        age_values = (
+            data.filter(pl.col("Series") != "RI").select("Age").to_series().to_list()
+        )
+        min_age = min(age_values)
+        max_age = max(age_values)
+        range_age = max_age - min_age
+        section_length = range_age / 3
+
+        data = data.with_columns(
+            pl.when(pl.col("Age") <= min_age + section_length)
+            .then(pl.lit("young"))
+            .when(pl.col("Age") <= min_age + 2 * section_length)
+            .then(pl.lit("middle"))
+            .otherwise(pl.lit("old"))
+            .alias("categorised_age")
+        )
+        data = data.with_columns(
+            pl.when(pl.col("categorised_age") == "young")
+            .then(pl.lit(color_dict["young"]))
+            .when(pl.col("categorised_age") == "middle")
+            .then(pl.lit(color_dict["middle"]))
+            .otherwise(pl.lit(color_dict["old"]))
+            .alias("color")
+        )
+        return data
+
     def make_dispersion_plot(self, data, dropdown_value=None):
         self.update_config()
         configuration = self.cofiguration.get("dispersion")
@@ -76,26 +106,16 @@ class plotting_engine:
 
         self.figure.update_layout(clickmode="event+select")
 
-        # Calculate Age Categories
-        age_values = data.select("Age").to_series().to_list()
-        min_age = min(age_values)
-        max_age = max(age_values)
-        range_age = max_age - min_age
-        section_length = range_age / 3
+        data = self.prepare_age(data)
 
-        def categorize_age(age):
-            if age <= min_age + section_length:
-                return 'Young'
-            elif age <= min_age + 2 * section_length:
-                return 'Middle'
-            else:
-                return 'Old'
-        age_categories = [categorize_age(age) for age in age_values]
+        hover_text = [
+            f"Age (month): {age}"
+            for age in data.filter(pl.col("Series") != "RI")
+            .select("Age")
+            .to_series()
+            .to_list()
+        ]
 
-        age_mapping = {'Young': 1, 'Middle': 2, 'Old': 3}
-        age_mapped_values = [age_mapping[category] for category in age_categories]
-
-        hover_text = [f"Age: {age}" for age in age_values]
         self.figure.add_trace(
             go.Scatter(
                 x=data.filter(pl.col("Series") != "RI")
@@ -108,18 +128,12 @@ class plotting_engine:
                 .to_list(),
                 mode="markers",
                 name="Portfolios",
+                marker_color=data.filter(pl.col("Series") != "RI")
+                .select("color")
+                .to_series()
+                .to_list(),
                 text=hover_text,
                 hovertemplate="CAGR: %{y:.2f}%<br>Risk: %{x:.2f}%<br>%{text}<extra></extra>",
-                marker=dict(
-                    color=age_mapped_values,
-                    colorscale=[[0, 'green'], [0.5, 'darkred'], [1, 'gold']],
-                    size=8,
-                    colorbar=dict(
-                        title='Age',
-                        tickvals=[1, 2, 3],
-                        ticktext=['Young', 'Middle', 'Old']
-                    )
-                ),
                 selected={
                     "marker": {
                         "color": self.get_color(configuration.get("selected_color"))
@@ -139,26 +153,36 @@ class plotting_engine:
         )
 
         ref_series = configuration.get("reference_series")
-        ri_cagr = data.filter(pl.col("Series") == "RI").select(configuration.get("y_value", "CAGR")).item(0, 0)
-        ri_risk = data.filter(pl.col("Series") == "RI").select(configuration.get("x_value", "Risk")).item(0, 0)
+        ri_cagr = (
+            data.filter(pl.col("Series") == "RI")
+            .select(configuration.get("y_value", "CAGR"))
+            .item(0, 0)
+        )
+        ri_risk = (
+            data.filter(pl.col("Series") == "RI")
+            .select(configuration.get("x_value", "Risk"))
+            .item(0, 0)
+        )
         self.add_RI(ri_cagr, ri_risk)
 
         # Add dropdown
         self.figure.update_layout(
             updatemenus=[
                 dict(
-                    buttons=list([
-                        dict(
-                            args=["store", "All Portfolios"],
-                            label="All Portfolios",
-                            method="relayout"
-                        ),
-                        dict(
-                            args=["store", "Better than RI"],
-                            label="Better than RI",
-                            method="relayout"
-                        )
-                    ]),
+                    buttons=list(
+                        [
+                            dict(
+                                args=["store", "All Portfolios"],
+                                label="All Portfolios",
+                                method="relayout",
+                            ),
+                            dict(
+                                args=["store", "Better than RI"],
+                                label="Better than RI",
+                                method="relayout",
+                            ),
+                        ]
+                    ),
                     direction="down",
                     pad={"l": -50, "t": -10},
                     showactive=True,
@@ -167,7 +191,11 @@ class plotting_engine:
                     y=1.1,
                     yanchor="top",
                     font=dict(size=13),
-                    active=0 if dropdown_value is None else (0 if dropdown_value == "All Portfolios" else 1),
+                    active=(
+                        0
+                        if dropdown_value is None
+                        else (0 if dropdown_value == "All Portfolios" else 1)
+                    ),
                 ),
             ]
         )
