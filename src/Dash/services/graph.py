@@ -25,15 +25,37 @@ class plotting_engine:
             self.working_directory, self.config_folder, self.graph_file
         )
 
-    def add_RI(self, y, x):
+    def add_RI(self, data, configuration):
+        hover_text = [
+            f"Age (month): {age}"
+            for age in data.filter(pl.col("Series") == "RI")
+            .select("Age")
+            .to_series()
+            .to_list()
+        ]
         self.figure.add_trace(
             go.Scatter(
-                x=[x],
-                y=[y],
+                x=data.filter(pl.col("Series") == "RI")
+                .select(configuration.get("x_value", "Risk"))
+                .to_series()
+                .to_list(),
+                y=data.filter(pl.col("Series") == "RI")
+                .select(configuration.get("y_value", "CAGR"))
+                .to_series()
+                .to_list(),
+                mode="markers",
+                customdata=data.filter(pl.col("Series") == "RI")
+                .select("Series")
+                .to_series()
+                .to_list(),
+                marker_color=data.filter(pl.col("Series") == "RI")
+                .select("color")
+                .to_series()
+                .to_list(),
                 name="RI",
                 marker=dict(color="#add8e6", size=8),
-                mode="markers",
-                hovertemplate="CAGR: %{y:.2f}%<br>Risk: %{x:.2f}%<extra></extra>",
+                text=hover_text,
+                hovertemplate="Series: %{customdata}<br>CAGR: %{y:.2f}%<br>Risk: %{x:.2f}%<br>%{text}<extra></extra>",
             )
         )
 
@@ -128,12 +150,16 @@ class plotting_engine:
                 .to_list(),
                 mode="markers",
                 name="Portfolios",
+                customdata=data.filter(pl.col("Series") != "RI")
+                .select("Series")
+                .to_series()
+                .to_list(),
                 marker_color=data.filter(pl.col("Series") != "RI")
                 .select("color")
                 .to_series()
                 .to_list(),
                 text=hover_text,
-                hovertemplate="CAGR: %{y:.2f}%<br>Risk: %{x:.2f}%<br>%{text}<extra></extra>",
+                hovertemplate="Series: %{customdata}<br>CAGR: %{y:.2f}%<br>Risk: %{x:.2f}%<br>%{text}<extra></extra>",
                 selected={
                     "marker": {
                         "color": self.get_color(configuration.get("selected_color"))
@@ -151,19 +177,7 @@ class plotting_engine:
         self.figure.update_xaxes(
             ticksuffix=" %", title=configuration.get("x_value", "Risk")
         )
-
-        ref_series = configuration.get("reference_series")
-        ri_cagr = (
-            data.filter(pl.col("Series") == "RI")
-            .select(configuration.get("y_value", "CAGR"))
-            .item(0, 0)
-        )
-        ri_risk = (
-            data.filter(pl.col("Series") == "RI")
-            .select(configuration.get("x_value", "Risk"))
-            .item(0, 0)
-        )
-        self.add_RI(ri_cagr, ri_risk)
+        self.add_RI(data, configuration)
 
         # Add dropdown
         self.figure.update_layout(
@@ -218,6 +232,7 @@ class plotting_engine:
                     orientation="h", yanchor="bottom", y=1, xanchor="right", x=1
                 )
             )
+            data.index = data.index.strftime("%Y-%m-%d")
             self.figure.add_trace(
                 go.Scatter(
                     x=data.index,

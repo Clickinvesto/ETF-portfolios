@@ -36,7 +36,7 @@ def full_layout():
     return dmc.Container(
         [
             dcc.Store(id="initial-data-store"),
-            dcc.Store(id='dropdown-state'),
+            dcc.Store(id="dropdown-state"),
             dmc.Title("Portfolio Exploration", order=2),
             dmc.Flex(
                 [
@@ -86,7 +86,7 @@ def full_layout():
     Output("initial-data-store", "data"),
     Input("url", "pathname"),
     State("series_store", "data"),
-    prevent_initial_call='initial_duplicate'
+    prevent_initial_call="initial_duplicate",
 )
 def init_graph(path, store):
     data = api.get_dispersion_data()
@@ -112,7 +112,7 @@ def display_click_data(selectedData):
     if selectedData is None:
         return blank_fig(), [], no_update, no_update
     selection = selectedData.get("points")[0]
-    selected_series = selection.get("text")
+    selected_series = selection.get("customdata")
     normalised_data, reference_series, number_month = api.get_weighted_series(
         selected_series
     )
@@ -140,7 +140,7 @@ def display_click_data(selectedData):
 @callback(
     Output("dropdown-state", "data", allow_duplicate=True),
     Input("dispersion_plot", "relayoutData"),
-    prevent_initial_call=True
+    prevent_initial_call=True,
 )
 def update_dropdown_state(relayout_data):
     if relayout_data and "store" in relayout_data:
@@ -154,7 +154,7 @@ def update_dropdown_state(relayout_data):
     Input("dropdown-state", "data"),
     State("dispersion_plot", "figure"),
     State("initial-data-store", "data"),
-    prevent_initial_call=True
+    prevent_initial_call=True,
 )
 def update_graph_based_on_dropdown(selection, current_figure, initial_data_store):
     if selection is None:
@@ -168,7 +168,9 @@ def update_graph_based_on_dropdown(selection, current_figure, initial_data_store
     ri_cagr = ri_data.select("CAGR").item(0, 0)
 
     if selection == "Better than RI":
-        filtered_data = data.filter((pl.col("Series") != "RI") & (pl.col("CAGR") > ri_cagr))
+        filtered_data = data.filter(
+            (pl.col("Series") != "RI") & (pl.col("CAGR") > ri_cagr)
+        )
     else:
         filtered_data = data.filter(pl.col("Series") != "RI")
 

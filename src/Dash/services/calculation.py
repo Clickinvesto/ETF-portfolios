@@ -74,7 +74,6 @@ class LocalAPI(S3Mixin):
         self.update_config()
         configuration = self.cofiguration.get("performance")
         reference_series = configuration.get("reference_series", "RI")
-
         combination, weights = self.get_series_combination_weights(series)
         df = pd.read_csv(
             self.get_data_file("data/" + self.series_file),
@@ -83,9 +82,9 @@ class LocalAPI(S3Mixin):
             decimal=".",
         )
 
-        df["Date"] = pd.to_datetime(df["Date"], format="%d/%m/%Y")
+        df["Date"] = pd.to_datetime(df["Date"], format="%m/%d/%Y")
         df.set_index("Date", inplace=True)
-
+        df = df.sort_index()
         highest_valid_index = max(df[col].first_valid_index() for col in combination)
         normalized_series = pd.DataFrame(
             {
@@ -109,6 +108,7 @@ class LocalAPI(S3Mixin):
             axis=1,
         )
         data.columns = [reference_series, series]
+        data = data.sort_index()
         return data, reference_series, len(data)
 
     def get_series_data(self, series=False, polar=False):
@@ -174,13 +174,11 @@ class CalculateCombinations(LocalAPI):
 
     def calc_metrics_polars(self, portfolio):
         number_of_month = portfolio.height
-        print(number_of_month)
         temp = portfolio.select(pl.last("sum")) / 100
         cagr = temp.item(0, 0) ** (12 / number_of_month) - 1
         cagr *= 100
 
         risk = portfolio / portfolio.shift(1)
-        print(risk)
         risk = (
             risk.select("sum")
             .filter(pl.col("sum").is_not_null())

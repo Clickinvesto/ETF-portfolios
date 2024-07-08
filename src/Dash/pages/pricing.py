@@ -286,13 +286,7 @@ def full_layout(user=False):
             ),
         ],
         fluid=True,
-        style={
-            "position": "fixed",
-            "padding": "10px",
-            "display": "block",
-            "max-height": "calc(100% - 70px)",
-            "width": "calc(100% - 200px)",
-        },
+        style={},
     )
 
 
