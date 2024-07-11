@@ -8,15 +8,12 @@ from pathlib import Path
 from flask import (
     Flask,
     current_app,
-    send_file,
-    url_for,
     redirect,
     request,
     session,
-    jsonify,
     flash,
 )
-from flask_admin import Admin, expose, AdminIndexView
+from flask_admin import Admin, AdminIndexView
 from flask_admin.contrib.fileadmin import FileAdmin
 from flask_login import LoginManager, current_user
 from flask_sqlalchemy import SQLAlchemy
@@ -63,49 +60,6 @@ login_manager = LoginManager()
 
 mail = RedMail()
 migrate = Migrate()
-
-
-class CustomModelView(ModelView):
-    edit_template = 'admin/edit.html'
-
-    def get_model_fields(self, model):
-        """Get all fields for a given SQLAlchemy model."""
-        return model.__table__.columns.keys()
-
-    @expose('/edit/', methods=['GET', 'POST'])
-    def edit_view(self, *args, **kwargs):
-        if request.method == 'POST':
-            user_id = request.args.get('id')
-            return redirect(url_for('auth_bp.model_edit', id=user_id))
-
-        user_id = request.args.get('id')
-        if not user_id:
-            return jsonify({"error": "No user ID provided"}), 400
-
-        from src.models import User
-        user = User.query.get(user_id)
-        if not user:
-            return jsonify({"error": "User not found"}), 404
-
-        # fields = [column.name for column in User.__table__.columns]
-        fields = {}
-        for column in User.__table__.columns:
-            print(column)
-            default_value = column.default.arg if column.default is not None else None
-            field_info = {
-                "type": str(column.type),
-                "nullable": column.nullable,
-                "max_length": column.type.length if hasattr(column.type, 'length') else None,
-                "default": default_value
-            }
-            fields[column.name] = field_info
-
-        return self.render(self.edit_template, user=user, fields=fields, getattr=getattr)
-
-
-# Add the custom filter to Jinja environment
-def pretty_field_name(field_name):
-    return field_name.replace('_', ' ').title()
 
 
 def create_app():
@@ -158,7 +112,6 @@ def create_app():
         aws_secret_access_key=os.environ.get("BUCKETEER_AWS_SECRET_ACCESS_KEY"),
     )
     app.config["S3_CLIENT"] = s3_client
-    app.jinja_env.filters['pretty'] = pretty_field_name
 
     @app.before_request
     def check_login():
@@ -189,32 +142,6 @@ def create_app():
                             session["url"] = request.url
                         return
             return
-        elif request.method == "POST":
-            pass
-        else:
-            if current_user.is_authenticated:
-                data = request.get_json()
-                # Check if the request data contains 'inputs' with a 'pathname' attribute
-                inputs = data.get("inputs", [])
-
-                return
-                if (
-                    len(inputs) == 1
-                    and inputs[0].get("id", False) == "url"
-                    and inputs[0].get("value", False) in block_list
-                    and not current_user.is_authenticated
-                ):
-                    # The page redirect goes to block list and user is not authenticated, redirect
-                    session["url"] = request.url
-                    return jsonify(
-                        {"multi": True, "response": {"url": {"pathname": "/pricing"}}}
-                    )
-                else:
-                    for pg in dash.page_registry:
-                        if request.path == dash.page_registry[pg]["path"]:
-                            session["url"] = request.url
-                        return
-            return
 
     with app.app_context():
         # Integrate the dash application
@@ -227,7 +154,7 @@ def create_app():
         admin_manager.add_view(
             CustomFileAdmin(log_path, name="Log Files", endpoint="log")
         )
-        admin_manager.add_view(CustomModelView(User, db.session, endpoint="users"))
+        admin_manager.add_view(ModelView(User, db.session))
         admin_manager.add_view(ModelView(PaypalPlans, db.session))
         admin_manager.add_view(ModelView(PaypalSubscription, db.session))
         admin_manager.add_view(
@@ -246,22 +173,6 @@ def create_app():
 
         # Create Database Models
         db.create_all()
-        # Prints all the urls of app
-        # print(app.url_map)
-
-        try:
-            plan = PaypalPlans(
-                plan_id=current_app.config["PAYPAL_PLAN_ID"],
-                name="Silver",
-                price=7,
-                currency="USD",
-                interval_unit="Days",
-                interval_count=30,
-            )
-            db.session.add(plan)
-            db.session.commit()
-        except:
-            pass
         """
         
         if (

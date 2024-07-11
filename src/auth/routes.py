@@ -1,7 +1,5 @@
 from datetime import datetime, timedelta, timezone
 import jwt
-import json
-from flask import Blueprint, render_template
 from flask import current_app
 from flask import (
     Blueprint,
@@ -17,7 +15,7 @@ from flask import (
 from flask_login import login_required, logout_user, current_user, login_user
 
 from src import login_manager
-from src.models import User, db, PaypalSubscription
+from src.models import User, db
 from .forms import LoginForm, SignupForm, ResetPasswordForm
 from .. import mail
 from src.Dash.services.API.PaymentGatway import PaymentGatway
@@ -446,55 +444,3 @@ def save_subscription():
     update_user_session_status(user_obj=current_user)
 
     return jsonify({"message": "Subscription saved successfully"})
-
-
-@auth_bp.route("/admin/user/edit/", methods=["GET", "POST"])
-def model_edit():
-    user_id = request.args.get('id') or request.form.get('id')
-    if request.is_json:
-        json_data = request.get_json()
-        if json_data:
-            user_id = json_data.get('id')
-
-    if not user_id:
-        return jsonify({"error": "No user ID provided"}), 400
-
-    try:
-        user_id = int(user_id)
-    except ValueError:
-        return jsonify({"error": "Invalid user ID format"}), 400
-
-    user = User.query.get(user_id)
-
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
-    if request.method == 'POST':
-        form_data = request.get_json()
-
-        if not form_data:
-            return jsonify({"error": "No data received"}), 400
-
-        # Update the user object with form data
-        for key, value in form_data.items():
-            if hasattr(user, key):
-                if key in ['is_admin', 'verified', 'data_consent']:
-                    value = value
-                elif key in ['created', 'last_login']:
-                    try:
-                        value = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S') if value else None
-                    except ValueError as e:
-                        return jsonify({"error": f"Invalid date format for {key}"}), 400
-                setattr(user, key, value)
-
-        try:
-            db.session.commit()
-        except Exception as e:
-            print(f"Error committing to the database: {e}")
-            return jsonify({"error": "Failed to update user"}), 500
-
-        users_index_endpoint = current_app.config.get('USERS_INDEX_ENDPOINT', 'users.index_view')
-        return jsonify({"redirect": url_for(users_index_endpoint)})
-
-    fields = [col.name for col in User.__table__.columns]
-    return render_template('admin/edit.html', user=user, fields=fields)
