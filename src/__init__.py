@@ -65,9 +65,52 @@ mail = RedMail()
 migrate = Migrate()
 
 
+class CustomModelView(ModelView):
+    edit_template = 'admin/edit.html'
+
+    def get_model_fields(self, model):
+        """Get all fields for a given SQLAlchemy model."""
+        return model.__table__.columns.keys()
+
+    @expose('/edit/', methods=['GET', 'POST'])
+    def edit_view(self, *args, **kwargs):
+        if request.method == 'POST':
+            user_id = request.args.get('id')
+            return redirect(url_for('auth_bp.model_edit', id=user_id))
+
+        user_id = request.args.get('id')
+        if not user_id:
+            return jsonify({"error": "No user ID provided"}), 400
+
+        from src.models import User
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        # fields = [column.name for column in User.__table__.columns]
+        fields = {}
+        for column in User.__table__.columns:
+            print(column)
+            default_value = column.default.arg if column.default is not None else None
+            field_info = {
+                "type": str(column.type),
+                "nullable": column.nullable,
+                "max_length": column.type.length if hasattr(column.type, 'length') else None,
+                "default": default_value
+            }
+            fields[column.name] = field_info
+
+        return self.render(self.edit_template, user=user, fields=fields, getattr=getattr)
+
+
+# Add the custom filter to Jinja environment
+def pretty_field_name(field_name):
+    return field_name.replace('_', ' ').title()
+
+
 def create_app():
     """Construct the core flask_session_tutorial."""
-    app = Flask(__name__, instance_relative_config=False)
+    app = Flask(__name__, instance_relative_config=False, template_folder="templates")
     app.secret_key = "your_secret_key"
     app.config.from_object("config.Config")
     app.config.from_object("config.URL")
@@ -115,6 +158,7 @@ def create_app():
         aws_secret_access_key=os.environ.get("BUCKETEER_AWS_SECRET_ACCESS_KEY"),
     )
     app.config["S3_CLIENT"] = s3_client
+    app.jinja_env.filters['pretty'] = pretty_field_name
 
     @app.before_request
     def check_login():
@@ -145,6 +189,8 @@ def create_app():
                             session["url"] = request.url
                         return
             return
+        elif request.method == "POST":
+            pass
         else:
             if current_user.is_authenticated:
                 data = request.get_json()
@@ -171,14 +217,6 @@ def create_app():
             return
 
     with app.app_context():
-        # openpay.production = current_app.config["OPENPAY_PRODUCTION"]
-        # openpay.api_key = current_app.config["OPENPAY_APIKEY"]
-        # openpay.verify_ssl_certs = current_app.config["OPENPAY_VERIFY_SSL_CERTS"]
-        # openpay.merchant_id = current_app.config["OPENPAY_MERCHANT_ID"]
-        # openpay.country = current_app.config["OPENPAY_COUNTRY"]
-        #
-        # current_app.Openpay = openpay
-
         # Integrate the dash application
         from .auth import routes as auth
         from .models import PaypalPlans, PaypalSubscription, Purchases, Plan
@@ -189,7 +227,7 @@ def create_app():
         admin_manager.add_view(
             CustomFileAdmin(log_path, name="Log Files", endpoint="log")
         )
-        admin_manager.add_view(ModelView(User, db.session))
+        admin_manager.add_view(CustomModelView(User, db.session, endpoint="users"))
         admin_manager.add_view(ModelView(PaypalPlans, db.session))
         admin_manager.add_view(ModelView(PaypalSubscription, db.session))
         admin_manager.add_view(
@@ -208,6 +246,8 @@ def create_app():
 
         # Create Database Models
         db.create_all()
+        # Prints all the urls of app
+        # print(app.url_map)
 
         try:
             plan = PaypalPlans(

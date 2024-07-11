@@ -99,7 +99,6 @@ def get_current_user():
 
 @auth_bp.route(current_app.config["URL_LOGIN"], methods=["GET", "POST"])
 def login():
-
     # First we check if the user is already authenticated and directly bring him to the userPage
     # We need to get the right URL for that from the blueprints
     loginForm = LoginForm()
@@ -216,7 +215,7 @@ def signup():
                 {
                     "email_address": user.email,
                     "exp": datetime.now(tz=timezone.utc)
-                    + timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
+                           + timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
                 },
                 current_app.config["SECRET_KEY"],
                 algorithm="HS256",
@@ -273,7 +272,7 @@ def resent_email():
             {
                 "email_address": existing_user.email,
                 "exp": datetime.now(tz=timezone.utc)
-                + timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
+                       + timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
             },
             current_app.config["SECRET_KEY"],
             algorithm="HS256",
@@ -362,7 +361,7 @@ def reset_password():
             {
                 "email_address": email,
                 "exp": datetime.now(tz=timezone.utc)
-                + timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
+                       + timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
             },
             current_app.config["SECRET_KEY"],
             algorithm="HS256",
@@ -447,3 +446,55 @@ def save_subscription():
     update_user_session_status(user_obj=current_user)
 
     return jsonify({"message": "Subscription saved successfully"})
+
+
+@auth_bp.route("/admin/user/edit/", methods=["GET", "POST"])
+def model_edit():
+    user_id = request.args.get('id') or request.form.get('id')
+    if request.is_json:
+        json_data = request.get_json()
+        if json_data:
+            user_id = json_data.get('id')
+
+    if not user_id:
+        return jsonify({"error": "No user ID provided"}), 400
+
+    try:
+        user_id = int(user_id)
+    except ValueError:
+        return jsonify({"error": "Invalid user ID format"}), 400
+
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    if request.method == 'POST':
+        form_data = request.get_json()
+
+        if not form_data:
+            return jsonify({"error": "No data received"}), 400
+
+        # Update the user object with form data
+        for key, value in form_data.items():
+            if hasattr(user, key):
+                if key in ['is_admin', 'verified', 'data_consent']:
+                    value = value
+                elif key in ['created', 'last_login']:
+                    try:
+                        value = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S') if value else None
+                    except ValueError as e:
+                        return jsonify({"error": f"Invalid date format for {key}"}), 400
+                setattr(user, key, value)
+
+        try:
+            db.session.commit()
+        except Exception as e:
+            print(f"Error committing to the database: {e}")
+            return jsonify({"error": "Failed to update user"}), 500
+
+        users_index_endpoint = current_app.config.get('USERS_INDEX_ENDPOINT', 'users.index_view')
+        return jsonify({"redirect": url_for(users_index_endpoint)})
+
+    fields = [col.name for col in User.__table__.columns]
+    return render_template('admin/edit.html', user=user, fields=fields)

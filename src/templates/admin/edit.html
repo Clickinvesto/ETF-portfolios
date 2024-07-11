@@ -1,0 +1,77 @@
+{% extends "admin/base.html" %}
+
+{% block body %}
+    <h3>Edit User</h3>
+    <form id="edit-form" class="admin-form" method="POST" action="{{ url_for('auth_bp.model_edit', id=user.id) }}">
+        <input type="hidden" name="id" value="{{ user.id }}">
+        {% for field, metadata in fields.items() %}
+            <div class="form-group" style="margin-bottom: 1em;">
+                {% if field != 'id' %}
+                    <label class="control-label" for="{{ field }}">{{ field | pretty }}
+                        {% if not metadata.nullable and metadata.default is none %}
+                            <span class="text-danger">*</span>
+                        {% endif %}
+                    </label>
+                {% endif %}
+                {% if field in ['is_admin', 'verified', 'data_consent'] %}
+                    <div class="form-check" style="margin-bottom: 2em;">
+                        <input type="checkbox" class="form-check-input" id="{{ field }}" name="{{ field }}" {% if getattr(user, field) %}checked{% endif %}>
+                    </div>
+                {% elif field in ['created', 'last_login'] %}
+                    <input class="form-control" type="datetime-local" id="{{ field }}" name="{{ field }}" value="{{ getattr(user, field).isoformat() if getattr(user, field) else '' }}">
+                {% elif field in ['id'] %}
+                {% else %}
+                    <input class="form-control" type="text" id="{{ field }}" name="{{ field }}" value="{{ getattr(user, field) }}"
+                           {% if metadata.max_length %}maxlength="{{ metadata.max_length }}"{% endif %}
+                           {% if not metadata.nullable and metadata.default is none %}required{% endif %}
+                    >
+                {% endif %}
+            </div>
+        {% endfor %}
+        <hr />
+        <div class="form-group">
+            <div class="col-md-offset-2 col-md-10 submit-row">
+                <input type="submit" class="btn btn-primary" value="Save">
+                <a href="/admin/users/" class="btn btn-danger" role="button">Cancel</a>
+            </div>
+        </div>
+    </form>
+    <script>
+        document.getElementById('edit-form').addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent the form from submitting the default way
+            var form = event.target;
+            var jsonData = {};
+
+            // Handle text and hidden inputs
+            form.querySelectorAll('input[type="text"], input[type="hidden"]').forEach(function(input) {
+                if (input.name === 'id') {
+                    jsonData[input.name] = parseInt(input.value); // Parse 'id' as integer
+                } else {
+                    jsonData[input.name] = input.value;
+                }
+            });
+
+            // Handle checkboxes
+            form.querySelectorAll('input[type="checkbox"]').forEach(function(input) {
+                jsonData[input.name] = input.checked ? 1 : 0;
+            });
+
+            fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(jsonData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                } else {
+                    console.log(data);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    </script>
+{% endblock %}
