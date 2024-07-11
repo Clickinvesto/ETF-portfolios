@@ -251,7 +251,7 @@ def create_app():
 
         try:
             plan = PaypalPlans(
-                plan_id="P-0WC16321VC6721344MZ5EIRY",
+                plan_id=current_app.config["PAYPAL_PLAN_ID"],
                 name="Silver",
                 price=7,
                 currency="USD",
