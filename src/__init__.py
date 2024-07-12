@@ -8,15 +8,12 @@ from pathlib import Path
 from flask import (
     Flask,
     current_app,
-    send_file,
-    url_for,
     redirect,
     request,
     session,
-    jsonify,
     flash,
 )
-from flask_admin import Admin, expose, AdminIndexView
+from flask_admin import Admin, AdminIndexView
 from flask_admin.contrib.fileadmin import FileAdmin
 from flask_login import LoginManager, current_user
 from flask_sqlalchemy import SQLAlchemy
@@ -67,7 +64,7 @@ migrate = Migrate()
 
 def create_app():
     """Construct the core flask_session_tutorial."""
-    app = Flask(__name__, instance_relative_config=False)
+    app = Flask(__name__, instance_relative_config=False, template_folder="templates")
     app.secret_key = "your_secret_key"
     app.config.from_object("config.Config")
     app.config.from_object("config.URL")
@@ -145,40 +142,8 @@ def create_app():
                             session["url"] = request.url
                         return
             return
-        else:
-            if current_user.is_authenticated:
-                data = request.get_json()
-                # Check if the request data contains 'inputs' with a 'pathname' attribute
-                inputs = data.get("inputs", [])
-
-                return
-                if (
-                    len(inputs) == 1
-                    and inputs[0].get("id", False) == "url"
-                    and inputs[0].get("value", False) in block_list
-                    and not current_user.is_authenticated
-                ):
-                    # The page redirect goes to block list and user is not authenticated, redirect
-                    session["url"] = request.url
-                    return jsonify(
-                        {"multi": True, "response": {"url": {"pathname": "/pricing"}}}
-                    )
-                else:
-                    for pg in dash.page_registry:
-                        if request.path == dash.page_registry[pg]["path"]:
-                            session["url"] = request.url
-                        return
-            return
 
     with app.app_context():
-        # openpay.production = current_app.config["OPENPAY_PRODUCTION"]
-        # openpay.api_key = current_app.config["OPENPAY_APIKEY"]
-        # openpay.verify_ssl_certs = current_app.config["OPENPAY_VERIFY_SSL_CERTS"]
-        # openpay.merchant_id = current_app.config["OPENPAY_MERCHANT_ID"]
-        # openpay.country = current_app.config["OPENPAY_COUNTRY"]
-        #
-        # current_app.Openpay = openpay
-
         # Integrate the dash application
         from .auth import routes as auth
         from .models import PaypalPlans, PaypalSubscription, Purchases, Plan
@@ -208,20 +173,6 @@ def create_app():
 
         # Create Database Models
         db.create_all()
-
-        try:
-            plan = PaypalPlans(
-                plan_id="P-0WC16321VC6721344MZ5EIRY",
-                name="Silver",
-                price=7,
-                currency="USD",
-                interval_unit="Days",
-                interval_count=30,
-            )
-            db.session.add(plan)
-            db.session.commit()
-        except:
-            pass
         """
         
         if (

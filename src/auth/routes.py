@@ -1,7 +1,5 @@
 from datetime import datetime, timedelta, timezone
 import jwt
-import json
-from flask import Blueprint, render_template
 from flask import current_app
 from flask import (
     Blueprint,
@@ -17,7 +15,7 @@ from flask import (
 from flask_login import login_required, logout_user, current_user, login_user
 
 from src import login_manager
-from src.models import User, db, PaypalSubscription
+from src.models import User, db
 from .forms import LoginForm, SignupForm, ResetPasswordForm
 from .. import mail
 from src.Dash.services.API.PaymentGatway import PaymentGatway
@@ -99,7 +97,6 @@ def get_current_user():
 
 @auth_bp.route(current_app.config["URL_LOGIN"], methods=["GET", "POST"])
 def login():
-
     # First we check if the user is already authenticated and directly bring him to the userPage
     # We need to get the right URL for that from the blueprints
     loginForm = LoginForm()
@@ -216,7 +213,7 @@ def signup():
                 {
                     "email_address": user.email,
                     "exp": datetime.now(tz=timezone.utc)
-                    + timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
+                           + timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
                 },
                 current_app.config["SECRET_KEY"],
                 algorithm="HS256",
@@ -273,7 +270,7 @@ def resent_email():
             {
                 "email_address": existing_user.email,
                 "exp": datetime.now(tz=timezone.utc)
-                + timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
+                       + timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
             },
             current_app.config["SECRET_KEY"],
             algorithm="HS256",
@@ -362,7 +359,7 @@ def reset_password():
             {
                 "email_address": email,
                 "exp": datetime.now(tz=timezone.utc)
-                + timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
+                       + timedelta(hours=current_app.config["TOKEN_EXPIRE"]),
             },
             current_app.config["SECRET_KEY"],
             algorithm="HS256",
