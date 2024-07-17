@@ -82,7 +82,7 @@ class LocalAPI(S3Mixin):
             decimal=".",
         )
 
-        df["Date"] = pd.to_datetime(df["Date"], format="%m/%d/%Y")
+        df["Date"] = pd.to_datetime(df["Date"], format="%d/%m/%Y")
         df.set_index("Date", inplace=True)
         df = df.sort_index()
         highest_valid_index = max(df[col].first_valid_index() for col in combination)
@@ -198,7 +198,6 @@ class CalculateCombinations(LocalAPI):
         # Calculate CAGR using vectorized operations
         cagr = (normalised_data_np[-1] / 100) ** (12 / number_of_month) - 1
         cagr *= 100
-
         # Calculate risk using vectorized operations and np.less
         risk = normalised_data_np / np.roll(normalised_data_np, shift=1)
         risk = np.less(risk, 1.0).sum() / number_of_month * 100
