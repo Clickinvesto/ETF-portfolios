@@ -79,12 +79,14 @@ class plotting_engine:
         fig.update_xaxes(rangeslider_visible=False)
         fig.update_layout(
             title_x=0.5,
-            autosize=True,
+            title_y=0.92,
+            autosize=False,
             title_xanchor="center",
             title_yanchor="top",
             title_font=dict(size=config.get("title_font_size", 20)),
             font=dict(size=config.get("generel_font_size", 16)),
         )
+        fig.update_layout(legend=dict(yanchor="bottom", y=0.01, xanchor="left", x=0.01))
 
         self.figure = fig
 
@@ -167,9 +169,6 @@ class plotting_engine:
                 },
             )
         )
-        self.figure.update_layout(
-            legend=dict(orientation="h", yanchor="bottom", y=1, xanchor="right", x=1)
-        )
 
         self.figure.update_yaxes(
             ticksuffix=" %", anchor="free", title=configuration.get("y_value", "CAGR")
@@ -213,6 +212,7 @@ class plotting_engine:
                 ),
             ]
         )
+
         return self.figure
 
     def make_performance_plot(self, data, series):
@@ -227,11 +227,6 @@ class plotting_engine:
             title = f"{configuration.get('title', 'Performance Graph')} of {series}"
             self.figure.update_layout(title_text=title)
 
-            self.figure.update_layout(
-                legend=dict(
-                    orientation="h", yanchor="bottom", y=1, xanchor="right", x=1
-                )
-            )
             data.index = data.index.strftime("%Y-%m-%d")
             self.figure.add_trace(
                 go.Scatter(
@@ -264,6 +259,9 @@ class plotting_engine:
                 tickformat=configuration.get("date_format", "%d/%m/%Y"), tickangle=-45
             )
 
+            self.figure.update_layout(
+                legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
+            )
             return self.figure
 
         except Exception as e:
