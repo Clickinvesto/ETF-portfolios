@@ -217,7 +217,7 @@ def create_paypal_subscription_paper(user_id):
     return html.Div(
         children=[
             dcc.Store(id="subscription-id", data=details["id"]),
-            dcc.Store(id="cancel-subscription-response"),
+            dcc.Store(id="cancel-subscription-response", data=None),
             dmc.NotificationProvider(id="cancel-subscription-notification"),
             dmc.Text(
                 "Subscription Plan:",

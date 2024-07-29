@@ -176,9 +176,7 @@ def full_layout(user=False):
                                                 spacing="sm",
                                                 children=[
                                                     dmc.ListItem(
-                                                        dmc.Text(
-                                                            "10 Source ETF’s, keep growing",
-                                                        ),
+                                                        "10 Source ETF’s, keeps growing",
                                                     ),
                                                     dmc.ListItem(
                                                         "Comparison indexes S&P 500"
@@ -197,7 +195,18 @@ def full_layout(user=False):
                                                 ],
                                             ),
                                             dmc.Space(h=35),
-                                            use_free,
+                                            html.Div(
+                                                [
+                                                    use_free,
+                                                ],
+                                                style={
+                                                    "display": "flex",
+                                                    "flexDirection": "column",
+                                                    "flex": "1",
+                                                    "justifyContent": "flex-end",
+                                                    "marginBottom": "5px",
+                                                },
+                                            ),
                                         ],
                                         withBorder=True,
                                         shadow="sm",
@@ -245,9 +254,7 @@ def full_layout(user=False):
                                                 spacing="sm",
                                                 children=[
                                                     dmc.ListItem(
-                                                        dmc.Text(
-                                                            "10 Source ETF’s, keep growing",
-                                                        ),
+                                                        "10 Source ETF’s, keeps growing",
                                                     ),
                                                     dmc.ListItem(
                                                         "Comparison indexes S&P 500"
@@ -271,6 +278,7 @@ def full_layout(user=False):
                                     ),
                                 ],
                                 justify="center",
+                                align="stretch",
                                 gap="xl",
                             ),
                         ],
@@ -440,45 +448,60 @@ clientside_callback(
         // Append the script to the body
         document.body.appendChild(script);
         function renderPayPalButton(clientID, planID) {
-            //console.log("Rendering PayPal button with Client ID:", clientID, "and Plan ID:", planID);
-            paypal.Buttons({
-                fundingSource: paypal.FUNDING.PAYPAL,
-                style: {
-                    layout: 'vertical',
-                    color: 'gold',
-                    shape: 'rect',
-                    label: 'paypal',
-                    tagline: false
-                },
-                createSubscription: function(data, actions) {
-                    //console.log("Creating subscription with Plan ID:", planID);
-                    return actions.subscription.create({
-                        'plan_id': planID
-                    });
-                },
-                onApprove: function(data, actions) {
-                    //console.log("Subscription approved with data:", data);
-                    return actions.subscription.get().then(function(details) {
-                        //console.log("Subscription details:", details);
-                        // Send subscription details to server
-                        fetch('/save-subscription', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                subscriptionID: data.subscriptionID,
-                                details: details
-                            })
-                        }).then(function(response) {
-                            //console.log("Server response:", response);
-                            return response.json();
-                        }).then(function(data) {
-                            console.log("Response data:", data);
+            //console.log("Rendering PayPal buttons...");
+            //var data = {
+            //    "subscriptionID": "I-WW2LBA2ULJ46",
+            //}
+
+            var fundingSources = [paypal.FUNDING.PAYPAL, paypal.FUNDING.CARD];
+            //console.log("Funding sources: ", fundingSources);
+            
+            fundingSources.forEach(function(fundingSource) {
+                //console.log("Creating button for funding source: ", fundingSource);
+                paypal.Buttons({
+                    fundingSource: fundingSource,
+                    style: {
+                        layout: 'horizontal',
+                        color: fundingSource === paypal.FUNDING.PAYPAL ? 'gold' : 'black',
+                        shape: 'rect',
+                        label: 'paypal',
+                        tagline: false
+                    },
+                    createSubscription: function(data, actions) {
+                        //console.log("Creating subscription with Plan ID:", planID);
+                        return actions.subscription.create({
+                            'plan_id': planID
                         });
-                    });
-                }
-            }).render('#paypal-button-container');
+                    },
+                    onApprove: function(data, actions) {
+                        //console.log("Subscription approved with data:", data);
+                        return actions.subscription.get().then(function(details) {
+                            //console.log("Subscription details:", details);
+                            fetch('/save-subscription', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    subscriptionID: data.subscriptionID,
+                                    details: details
+                                })
+                            }).then(function(response) {
+                                //console.log("Server response:", response);
+                                if (response.ok) {  // Check for successful response
+                                    //console.log("Subscription saved successfully");
+                                    alert("Thank you for subscribing! You have successfully subscribed.")
+                                    window.location.reload();  // Reload the page
+                                } else {
+                                    console.error("Error saving subscription");
+                                }
+                            }).catch(function(error) {
+                                console.log("Fetch Error:", error);
+                            });
+                        });
+                    }
+                }).render('#paypal-button-container');
+            });
         }
     }
     """,

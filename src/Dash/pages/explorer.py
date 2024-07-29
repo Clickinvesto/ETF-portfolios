@@ -33,6 +33,13 @@ def layout(socket_ids=None, **kwargs):
 
 
 def full_layout():
+    color_scale_note = (
+        "<p>*Colors represent age categories - "
+        "<span style='color: #a8d4ff;'>●</span> Young, "
+        "<span style='color: #0b88ff;'>●</span> Middle, "
+        "<span style='color: #002446;'>●</span> Old</p>"
+    )
+
     return dmc.Container(
         [
             dcc.Store(id="initial-data-store"),
@@ -45,6 +52,10 @@ def full_layout():
                             dcc.Graph(
                                 id="dispersion_plot",
                                 figure=blank_fig(),
+                            ),
+                            dmc.Text(
+                                dcc.Markdown(color_scale_note, dangerously_allow_html=True),
+                                size="sm",
                             ),
                             dmc.Text(
                                 "*Reference Index RI stands for S&P500 measured by SPY ETF",
