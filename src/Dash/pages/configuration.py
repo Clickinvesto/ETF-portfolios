@@ -34,7 +34,6 @@ payment_gateway = PaymentGateway()
 api = PaymentGatway()
 db = current_app.db
 
-
 register_page(
     __name__, name="Configuration", path=current_app.config["URL_CONFIGURATION"]
 )
@@ -500,6 +499,8 @@ def update_subscription_paper(_, socket_id):
     prevent_initial_call=True
 )
 def cancel_subscription(n_clicks, subscription_id, socket_id):
+    if not session.get("user"):
+        return {"error": "Must be logged in."}
     if not subscription_id:
         return {"error": "Subscription ID is required"}
 
@@ -516,7 +517,8 @@ def cancel_subscription(n_clicks, subscription_id, socket_id):
         id=notification_id,
     )
     # Cancel the subscription through PayPal API
-    response = payment_gateway.cancel_subscription(subscription_id=subscription_id)
+    user_id = session.get("user")["id"]
+    response = payment_gateway.cancel_subscription(user_id=user_id, subscription_id=subscription_id)
     if response and response["item"] is False:
         return {
             "item": {
@@ -542,11 +544,12 @@ def cancel_subscription(n_clicks, subscription_id, socket_id):
 
 
 @callback(
+    Output("subscription_paper", "children", allow_duplicate=True),
     [Input("cancel-subscription-response", "data")],
     prevent_initial_call=True
 )
 def display_cancel_notification(response):
-    if response["error"]:
+    if response and response["error"]:
         notify.send_socket(
             to=response["item"]["socket_id"],
             type="error_process",
@@ -555,10 +558,14 @@ def display_cancel_notification(response):
             id=response["item"]["notification_id"]
         )
         raise PreventUpdate
-    notify.send_socket(
-        to=response["item"]["socket_id"],
-        type="success_process",
-        title=response["item"]["message"],
-        message=response["item"]["message"],
-        id=response["item"]["notification_id"]
-    )
+    if response and response["error"] is False:
+        notify.send_socket(
+            to=response["item"]["socket_id"],
+            type="success_process",
+            title=response["item"]["message"],
+            message=response["item"]["message"],
+            id=response["item"]["notification_id"]
+        )
+
+    user = session.get("user", False)
+    return create_paypal_subscription_paper(user["id"])

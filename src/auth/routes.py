@@ -443,4 +443,4 @@ def save_subscription():
     )
     update_user_session_status(user_obj=current_user)
 
-    return jsonify({"message": "Subscription saved successfully"})
+    return jsonify({"message": "Subscription saved successfully"}), 200

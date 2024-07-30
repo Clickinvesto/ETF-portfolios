@@ -1,7 +1,7 @@
 import requests
 from flask import current_app
 from requests.auth import HTTPBasicAuth
-from src.models import PaypalSubscription
+from src.models import PaypalSubscription, User
 
 db = current_app.db
 
@@ -111,12 +111,17 @@ class PaymentGateway:
             data = {
                 "reason": "User requested cancellation"
             }
-            # response = requests.post(url, headers=headers, json=data)
-            # if response.status_code == 204:
-            if True:
+            response = requests.post(url, headers=headers, json=data)
+            if response.status_code == 204:
                 # Update subscription status in the database
                 subscription.status = 'CANCELLED'
                 db.session.commit()
+
+                # Update the user's subscription column to NULL
+                user = User.query.filter_by(id=user_id).first()
+                user.subscription = None
+                db.session.commit()
+
                 return {
                     "item": {
                         "message": "Subscription cancelled successfully",
