@@ -43,7 +43,7 @@ def make_header():
             dmc.Group(
                 [
                     dmc.Burger(id="menue", hiddenFrom="md", opened=False),
-                    dmc.Image(src="/assets/images/logo.png", h=50),
+                    dmc.Image(src="/assets/images/logo.png", h=50, visibleFrom=600),
                 ]
             ),
             dmc.Menu(
