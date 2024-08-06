@@ -4,7 +4,7 @@ from dash import dcc, html
 from dash_iconify import DashIconify
 from src.Dash.services.API.PaymentGateway import PaymentGateway
 from src.Dash.services.API.SubscriptionService import SubscriptionService
-from src.models import PaypalPlans
+from src.models import PaypalPlans, PaypalSubscription
 
 subscription_service = SubscriptionService()
 payment_gateway = PaymentGateway()
@@ -325,3 +325,38 @@ def create_paypal_subscription_paper(user_id):
         ],
         style={"radius": "md", "margin": "10px"},
     )
+
+
+def create_payment_history_table(user_id):
+    payments = PaypalSubscription.get_user_payments(user_id)
+
+    rows = [
+        dmc.TableTr(
+            children=[
+                dmc.TableTd(payment["subscription_id"]),
+                dmc.TableTd(payment["plan_name"]),
+                dmc.TableTd(payment["plan_value"]),
+                dmc.TableTd(payment["start_date"].strftime("%Y-%m-%d")),
+                dmc.TableTd(payment["status"]),
+            ],
+        )
+        for payment in payments
+    ]
+
+    head = dmc.TableThead(
+        dmc.TableTr(
+            [
+                dmc.TableTh("Subscription ID"),
+                dmc.TableTh("Plan Name"),
+                dmc.TableTh("Plan Value"),
+                dmc.TableTh("Date"),
+                dmc.TableTh("Status"),
+            ]
+        )
+    )
+
+    body = dmc.TableTbody(rows)
+
+    table = [head, body]
+
+    return table

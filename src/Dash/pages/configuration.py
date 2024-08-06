@@ -18,14 +18,14 @@ from dash import (
 from dash.exceptions import PreventUpdate
 from dash_iconify import DashIconify
 from flask import current_app, session, flash
-from flask_login import logout_user
+from flask_login import logout_user, current_user
 
 from src.Dash.services.API.PaymentGateway import PaymentGateway
 from src.Dash.services.API.PaymentGatway import PaymentGatway
 from src.Dash.services.NotificationProvider import NotificationProvider
 from src.Dash.components.account_information import (
     create_subscription_paper,
-    create_credit_card_paper, create_paypal_subscription_paper,
+    create_credit_card_paper, create_paypal_subscription_paper, create_payment_history_table,
 )
 from src.models import PaypalSubscription
 
@@ -96,30 +96,6 @@ def full_layout():
                                         id="subscription_paper",
                                         justify="flex-start",
                                     ),
-                                    # dmc.Stack(
-                                    #     [
-                                    #         dmc.Group(
-                                    #             [
-                                    #                 dmc.Button(
-                                    #                     "Cancle subscription",
-                                    #                     color="orange",
-                                    #                     id="cancle_subscription",
-                                    #                 ),
-                                    #                 dmc.Button(
-                                    #                     "Delete Openpay Account",
-                                    #                     color="orange",
-                                    #                     id="delete_openpay_account",
-                                    #                 ),
-                                    #                 dmc.Button(
-                                    #                     "Delete User",
-                                    #                     color="red",
-                                    #                     id="delete_user",
-                                    #                 ),
-                                    #             ],
-                                    #             justify="flex-start",
-                                    #         ),
-                                    #     ]
-                                    # ),
                                 ],
                                 justify="space-between",
                                 style={"height": "100%"},
@@ -127,40 +103,33 @@ def full_layout():
                         ],
                     ),
                     dmc.Space(h=20),
-                    # dmc.Paper(
-                    #     id="credit_cards_paper",
-                    #     children=[
-                    #         dmc.Text(
-                    #             "Credit Cards:",
-                    #             size="md",
-                    #             style={
-                    #                 "textDecoration": "underline",
-                    #                 "marginLeft": 20,
-                    #                 "fontWeight": 500,
-                    #             },
-                    #         ),
-                    #         dmc.Space(h=10),
-                    #         dmc.Group(
-                    #             children=[
-                    #                 dmc.Skeleton(
-                    #                     height=150,
-                    #                     width="100%",
-                    #                     animate=True,
-                    #                     style={"flex": 1},
-                    #                 ),
-                    #                 dmc.Skeleton(
-                    #                     height=150,
-                    #                     width="100%",
-                    #                     animate=True,
-                    #                     style={"flex": 1},
-                    #                 ),
-                    #             ],
-                    #             justify="space-between",
-                    #             grow=True,
-                    #         ),
-                    #     ],
-                    # ),
-                    # Add a hidden dcc.Location, div to trigger for redirection
+                    # Add new Paper for payment history
+                    dmc.Paper(
+                        [
+                            dmc.Stack(
+                                [
+                                    dmc.Text(
+                                        "Payment History:",
+                                        size="md",
+                                        style={
+                                            "textDecoration": "underline",
+                                            "fontWeight": 500,
+                                        },
+                                    ),
+                                    dmc.Space(h=10),
+                                    dmc.Table(
+                                        id="payments_table",
+                                        withTableBorder=True,
+                                        withColumnBorders=True,
+                                        withRowBorders=True,
+                                    ),
+                                ],
+                                justify="space-between",
+                                style={"height": "100%"},
+                            ),
+                        ],
+                    ),
+                    dmc.Space(h=20),
                     dcc.Location(id="redirect", refresh=True),
                     html.Div(id="redirect-trigger", style={"display": "none"}),
                     dcc.Store(id="store-account-data", storage_type="memory"),
@@ -168,7 +137,7 @@ def full_layout():
                 style={
                     "width": "calc(100% - 1px)",
                     "display": "flex",
-                    "flex-direction": "row",
+                    "flex-direction": "column",
                     "align": "center",
                     # "justify-content": "space-around",
                     "flex-wrap": "wrap",
@@ -181,29 +150,21 @@ def full_layout():
 
 
 @callback(
-    Output("subscription_paper", "children", allow_duplicate=True),
+    [
+        Output("subscription_paper", "children", allow_duplicate=True),
+        Output("payments_table", "children"),
+    ],
     Input("subscription_paper", "id"),
     State("dash_websocket", "socketId"),
     prevent_initial_call="initial_duplicate",
 )
 def update_subscription_paper(_, socket_id):
     user = session.get("user", False)
-    # openpay_id = user.get("openpay_id", False)
-    # subscription, plan = [False, False]
-    # if openpay_id:
-    #     result = api.fetch_subscription_and_plan(openpay_id)
-    #     subscription, plan = result["item"]
-    #     if result["error"]:
-    #         notify.send_socket(
-    #             to=socket_id,
-    #             type="error",
-    #             title="Something went wrong",
-    #             message=result["error"],
-    #         )
-    #         raise PreventUpdate
-    # content = create_subscription_paper(plan, subscription)
+
     content = create_paypal_subscription_paper(user["id"])
-    return content
+    payment_history = create_payment_history_table(user["id"])
+
+    return content, payment_history
 
 
 # @callback(

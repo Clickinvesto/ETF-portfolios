@@ -8,6 +8,7 @@ from dash import (
     Output,
     State,
     no_update,
+    clientside_callback
 )
 import polars as pl
 from flask import current_app
@@ -111,7 +112,7 @@ def init_graph(path, store):
 
 @callback(
     [
-        Output("performance_plot", "figure"),
+        Output("performance_plot", "figure", allow_duplicate=True),
         Output("performance_table", "children"),
         Output("notify_container", "children", allow_duplicate=True),
         Output("series_store", "data"),
@@ -189,3 +190,20 @@ def update_graph_based_on_dropdown(selection, current_figure, initial_data_store
     figure = plotter.make_dispersion_plot(final_data, dropdown_value=selection)
 
     return selection, figure
+
+
+clientside_callback(
+    """
+    function(selectedData) {
+        if (selectedData !== null) {
+            var target = document.getElementById("performance_plot");
+            if (target) {
+                target.scrollIntoView({ behavior: "smooth" });
+            }
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("performance_plot", "figure"),
+    Input("dispersion_plot", "selectedData"),
+)

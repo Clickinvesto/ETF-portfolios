@@ -132,3 +132,24 @@ class PaypalSubscription(db.Model):
 
     def __repr__(self):
         return f'<subscription_id: {self.subscription_id}:, plan_id: {self.plan_id}, status: {self.status}, start_date: {self.start_date}, next_billing_date: {self.next_billing_date} '
+
+    @staticmethod
+    def get_user_payments(user_id):
+        # Fetch payments for the user
+        payments = db.session.query(PaypalSubscription).filter_by(user_id=user_id).all()
+
+        payment_data = []
+        for payment in payments:
+            plan = PaypalPlans.query.filter_by(plan_id=payment.plan_id).first()
+
+            plan_name = plan.name if plan else "N/A"
+            plan_value = plan.price if plan else "N/A"
+
+            payment_data.append({
+                "subscription_id": payment.subscription_id,
+                "plan_name": plan_name,
+                "plan_value": plan_value,
+                "start_date": payment.start_date,
+                "status": payment.status,
+            })
+        return payment_data

@@ -13141,6 +13141,19 @@ select.form-control[multiple] {
   justify-content: space-around;
 }
 
+@media (max-width: 576px) {
+  .main {
+    width: 325px;
+    height: 550px;
+  }
+}
+
+.formLogin {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 0px 30px;
+}
 
 .footer_privacy {
   display: flex;
