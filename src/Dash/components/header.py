@@ -46,13 +46,7 @@ def make_header():
                     dmc.Image(
                         src="/assets/images/logo.png",
                         h=50,
-                        visibleFrom={
-                            "xs": False,
-                            "sm": False,
-                            "md": True,
-                            "lg": True,
-                            "xl": True,
-                        },
+                        visibleFrom="sm",
                     ),
                 ]
             ),
