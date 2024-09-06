@@ -140,8 +140,11 @@ def layout():
 def check_url(pathname):
     if pathname == current_app.config["URL_COMPOSITION"]:
         user = session.get("user", None)
-        if not user or user.get("subscription", None) is None:
-            # Make sure the user is rooted when clicking on composition and has no subscription
-            session["url"] = pathname
-            return "/pricing"
+        is_admin = user.get("is_admin", "False")
+        if not is_admin:
+            if not user or user.get("subscription", None) is None:
+                # Make sure the user is rooted when clicking on composition and has no subscription
+                session["url"] = pathname
+                return "/pricing"
+        return current_app.config["URL_COMPOSITION"]
     raise PreventUpdate
