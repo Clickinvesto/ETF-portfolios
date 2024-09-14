@@ -60,7 +60,6 @@ class LocalAPI(S3Mixin):
         logging.error("Finished")
         return df
 
-    @cache.cached(timeout=None, key_prefix="dispersion_graph_data")
     def get_dispersion_data(self):
         df = self.load_dispersion_data()
         df = df.select(["Series", "CAGR", "Risk", "Age"])

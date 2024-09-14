@@ -23,6 +23,7 @@ register_page(__name__, name="Series Explorer", path=current_app.config["URL_EXP
 
 api = LocalAPI()
 plotter = plotting_engine()
+cache = current_app.cache
 
 
 def layout(socket_ids=None, **kwargs):
@@ -92,14 +93,20 @@ def full_layout():
     )
 
 
+@cache.cached(timeout=None, key_prefix="dispersion_graph_figure")
+def function_process():
+    data = api.get_dispersion_data()
+    figure = plotter.make_dispersion_plot(data)
+    return figure
+
+
 @callback(
     Output("dispersion_plot", "figure"),
     Input("url", "pathname"),
 )
 def init_graph(path):
     if path == current_app.config["URL_EXPLORER"]:
-        data = api.get_dispersion_data()
-        figure = plotter.make_dispersion_plot(data)
+        figure = function_process()
         return figure
     raise PreventUpdate
 

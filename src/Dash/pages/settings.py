@@ -450,6 +450,6 @@ def callback(set_progress, n_clicks, interval_size, partitions, top_x):
         # total_df = total_df.sort("cagr", descending=True).head(top_x)
         # total_df.write_csv(file_name)
     api.upload_files_to_s3([file_name], "data")
-    cache.delete("dispersion_graph_data")
+
     cache.delete("dispersion_graph_figure")
     return f"Finished calculating the protfolios. It took {round(time.time() - start_time, 2)}s"

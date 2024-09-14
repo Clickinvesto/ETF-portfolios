@@ -121,7 +121,7 @@ class plotting_engine:
         )
         return data
 
-    @cache.cached(timeout=None, key_prefix="dispersion_graph_figure")
+    
     def make_dispersion_plot(self, data):
         self.update_config()
         configuration = self.cofiguration.get("dispersion")
