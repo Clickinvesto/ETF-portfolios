@@ -140,7 +140,7 @@ def create_app():
                     return redirect("/login")
                 elif request.path in block_list and (
                     user.get("subscription", None) is None
-                    or not user.get("is_admin", False)
+                    and not user.get("is_admin", False)
                 ):
                     # The user as an account but no subscription -> go to pricing
                     return redirect("/pricing")
