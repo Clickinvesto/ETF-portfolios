@@ -39,10 +39,10 @@ def layout(socket_ids=None, **kwargs):
         raise PreventUpdate
     # This page requires the user to subscripe. So first check if the user is logged in.
     user = session.get("user", False)
-
-    if not user or user.get("subscription", None) is None:
-        return dmc.Container()
-
+    is_admin = user.get("is_admin", "False")
+    if not is_admin:
+        if not user or user.get("subscription", None) is None:
+            return dmc.Container()
     return full_layout()
 
 
