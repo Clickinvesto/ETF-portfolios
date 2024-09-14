@@ -146,10 +146,10 @@ def create_risk_table(header_data, value_data):
     State("series_selection", "value"),
 )
 def fill_selection(pathname, store, current_selection):
-    if current_selection is None:
+    if pathname == current_app.config["URL_COMPOSITION"] and current_selection is None:
         if store:
             selection = store.get("points")[0]
-            selected_series = selection.get("text")
+            selected_series = selection.get("customdata")
             return selected_series
         else:
             return "x1"
@@ -163,7 +163,6 @@ def fill_selection(pathname, store, current_selection):
     prevent_initial_call=True,
 )
 def update_page(series):
-
     indices, weights = api.get_series_combination_weights(series)
     filtered_indices, filtered_weights = zip(
         *[(index, weight) for index, weight in zip(indices, weights) if weight != 0]

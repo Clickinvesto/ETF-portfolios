@@ -10,6 +10,9 @@ import pandas as pd
 import numpy as np
 from itertools import combinations, product
 from .mixins.S3mixin import S3Mixin
+from flask import current_app
+
+cache = current_app.cache
 
 # Python is doing Bankers rounding by default. setting the rounding context
 context = decimal.getcontext()
@@ -57,6 +60,7 @@ class LocalAPI(S3Mixin):
         logging.error("Finished")
         return df
 
+    @cache.cached(timeout=None, key_prefix="dispersion_graph_data")
     def get_dispersion_data(self):
         df = self.load_dispersion_data()
         df = df.select(["Series", "CAGR", "Risk", "Age"])

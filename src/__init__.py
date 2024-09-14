@@ -22,6 +22,7 @@ from flask_migrate import Migrate
 from src.admin.s3FileAdmin import S3FileAdmin
 from src.services.logging import configure_logger
 from flask_admin.contrib.sqla import ModelView
+from src.services.cache import cache
 
 path = Path(__file__).resolve().parent / "Dash"
 # Get the directory containing your `src` folder
@@ -64,7 +65,12 @@ migrate = Migrate()
 
 def create_app():
     """Construct the core flask_session_tutorial."""
-    app = Flask(__name__, instance_relative_config=False, template_folder="templates")
+    app = Flask(
+        __name__,
+        instance_relative_config=False,
+        template_folder="templates",
+        static_folder="assets",
+    )
     app.secret_key = "your_secret_key"
     app.config.from_object("config.Config")
     app.config.from_object("config.URL")
@@ -104,6 +110,8 @@ def create_app():
     login_manager.init_app(app)
     login_manager.login_view = "/login"
     mail.init_app(app)
+    cache.init_app(app)
+    app.cache = cache
 
     s3_client = boto3.resource(
         service_name="s3",
@@ -130,9 +138,9 @@ def create_app():
                         category="warning",
                     )
                     return redirect("/login")
-                elif (
-                    request.path in block_list
-                    and user.get("subscription", None) is None
+                elif request.path in block_list and (
+                    user.get("subscription", None) is None
+                    or not user.get("is_admin", False)
                 ):
                     # The user as an account but no subscription -> go to pricing
                     return redirect("/pricing")

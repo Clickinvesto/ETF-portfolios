@@ -6,6 +6,7 @@ from flask import current_app
 import plotly.express as px
 
 color_set = px.colors.qualitative.Vivid
+cache = current_app.cache
 
 
 def blank_fig():
@@ -120,7 +121,8 @@ class plotting_engine:
         )
         return data
 
-    def make_dispersion_plot(self, data, dropdown_value=None):
+    @cache.cached(timeout=None, key_prefix="dispersion_graph_figure")
+    def make_dispersion_plot(self, data):
         self.update_config()
         configuration = self.cofiguration.get("dispersion")
         self.init_graph(configuration)
@@ -169,14 +171,46 @@ class plotting_engine:
                 },
             )
         )
-
+        ri_cagr = data.filter(pl.col("Series") == "RI").select("CAGR").item(0, 0)
+        filtered_data = data.filter(
+            (pl.col("Series") != "RI") & (pl.col("CAGR") > ri_cagr)
+        )
+        self.figure.add_trace(
+            go.Scatter(
+                x=filtered_data.filter(pl.col("Series") != "RI")
+                .select(configuration.get("x_value", "Risk"))
+                .to_series()
+                .to_list(),
+                y=filtered_data.filter(pl.col("Series") != "RI")
+                .select(configuration.get("y_value", "CAGR"))
+                .to_series()
+                .to_list(),
+                mode="markers",
+                name="Portfolios",
+                customdata=filtered_data.filter(pl.col("Series") != "RI")
+                .select("Series")
+                .to_series()
+                .to_list(),
+                marker_color=filtered_data.filter(pl.col("Series") != "RI")
+                .select("color")
+                .to_series()
+                .to_list(),
+                text=hover_text,
+                hovertemplate="Series: %{customdata}<br>CAGR: %{y:.2f}%<br>Risk: %{x:.2f}%<br>%{text}<extra></extra>",
+                selected={
+                    "marker": {
+                        "color": self.get_color(configuration.get("selected_color"))
+                    }
+                },
+            )
+        )
+        self.add_RI(data, configuration)
         self.figure.update_yaxes(
             ticksuffix=" %", anchor="free", title=configuration.get("y_value", "CAGR")
         )
         self.figure.update_xaxes(
             ticksuffix=" %", title=configuration.get("x_value", "Risk")
         )
-        self.add_RI(data, configuration)
 
         # Add dropdown
         self.figure.update_layout(
@@ -185,14 +219,14 @@ class plotting_engine:
                     buttons=list(
                         [
                             dict(
-                                args=["store", "All Portfolios"],
+                                args=[{"visible": [True, False, True]}],
                                 label="All Portfolios",
-                                method="relayout",
+                                method="update",
                             ),
                             dict(
-                                args=["store", "Better than RI"],
+                                args=[{"visible": [False, True, True]}],
                                 label="Better than RI",
-                                method="relayout",
+                                method="update",
                             ),
                         ]
                     ),
@@ -204,15 +238,12 @@ class plotting_engine:
                     y=1.1,
                     yanchor="top",
                     font=dict(size=13),
-                    active=(
-                        0
-                        if dropdown_value is None
-                        else (0 if dropdown_value == "All Portfolios" else 1)
-                    ),
+                    active=0,
+                    # ),
                 ),
             ]
         )
-
+        self.figure.update_layout(showlegend=False)
         return self.figure
 
     def make_performance_plot(self, data, series):
@@ -278,17 +309,7 @@ class plotting_engine:
             go.Pie(
                 labels=labels,
                 values=values,
-                marker_colors=[
-                    "#004c94",
-                    " #255e9f",
-                    "#3e6fab",
-                    "#5681b6",
-                    "#6d93c1",
-                    "#85a4cb," "#9db6d6",
-                    "#b5c8e1",
-                    "#cddaeb",
-                    "#e6edf5",
-                ],
+                marker_colors=px.colors.qualitative.G10,
                 hoverinfo="skip",
             )
         )

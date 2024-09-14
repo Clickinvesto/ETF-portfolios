@@ -7,7 +7,6 @@ from io import BytesIO
 from pathlib import Path
 from dash import (
     register_page,
-    long_callback,
     html,
     dcc,
     callback,
@@ -15,7 +14,6 @@ from dash import (
     Output,
     State,
     ctx,
-    no_update,
     ALL,
 )
 from decimal import Decimal, getcontext
@@ -26,20 +24,16 @@ import time
 from math import comb
 from flask import current_app
 from dash.exceptions import PreventUpdate
-from itertools import combinations, product
 from flask import session, redirect
 from src.Dash.services.calculation import CalculateCombinations
 from src.Dash.services.graph import plotting_engine
 from src.Dash.utils.functions import get_icon
 from src.Dash.components.checklist import create_check_list
-from dash.long_callback import DiskcacheLongCallbackManager
+
 from src.Dash.services.NotificationProvider import NotificationProvider
-import diskcache
 
 notify = NotificationProvider()
 
-cache = diskcache.Cache("./cache")
-long_callback_manager = DiskcacheLongCallbackManager(cache)
 
 api = CalculateCombinations()
 plotter = plotting_engine()
@@ -48,6 +42,7 @@ app = dash.get_app()
 
 context = decimal.getcontext()
 context.rounding = decimal.ROUND_HALF_UP
+cache = current_app.cache
 
 import itertools
 import numpy as np
@@ -345,7 +340,6 @@ def first_non_null_index(col):
         (Output("cancle_calibration", "disabled"), False, True),
     ],
     cancel=[Input("cancle_calibration", "n_clicks")],
-    manager=long_callback_manager,
     progress=[Output("progress_bar", "value"), Output("progress_bar", "label")],
     progress_default=(0, f"{0}%"),
     interval=100,
@@ -456,4 +450,6 @@ def callback(set_progress, n_clicks, interval_size, partitions, top_x):
         # total_df = total_df.sort("cagr", descending=True).head(top_x)
         # total_df.write_csv(file_name)
     api.upload_files_to_s3([file_name], "data")
+    cache.delete("dispersion_graph_data")
+    cache.delete("dispersion_graph_figure")
     return f"Finished calculating the protfolios. It took {round(time.time() - start_time, 2)}s"

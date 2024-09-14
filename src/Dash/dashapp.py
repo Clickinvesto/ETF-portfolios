@@ -3,6 +3,11 @@ from flask import current_app
 from .base import layout
 
 _dash_renderer._set_react_version("18.2.0")
+import diskcache
+from dash.long_callback import DiskcacheLongCallbackManager
+
+cache = diskcache.Cache("./cache")
+long_callback_manager = DiskcacheLongCallbackManager(cache)
 
 stylesheets = [
     "https://unpkg.com/@mantine/dates@7/styles.css",
@@ -29,12 +34,14 @@ def create_dashapp(server, base_url):
         prevent_initial_callbacks="initial_duplicate",
         suppress_callback_exceptions=True,
         routing_callback_inputs={"socket_ids": Input("dash_websocket", "socketId")},
+        assets_folder="../assets",
+        long_callback_manager=long_callback_manager,
     )
     # Set favicon
     # app._favicon = f"{assets_path}/img/favicon.ico"
     app.title = "Stock"
 
-    app.index_string = '''
+    app.index_string = """
     <!DOCTYPE html>
     <html>
         <head>
@@ -53,8 +60,10 @@ def create_dashapp(server, base_url):
             </footer>
         </body>
     </html>
-    '''
-    app.index_string = app.index_string.replace('YOUR_CLIENT_ID', current_app.config['PAYPAL_CLIENT_ID'])
+    """
+    app.index_string = app.index_string.replace(
+        "YOUR_CLIENT_ID", current_app.config["PAYPAL_CLIENT_ID"]
+    )
 
     app.layout = layout
 
