@@ -23,4 +23,4 @@ app = create_app()
 
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 if __name__ == "__main__":
-    socketio.run(app, debug=True)
+    socketio.run(app, debug=False)
