@@ -127,6 +127,9 @@ class plotting_engine:
             .alias("color")
         )
         age_categories = data.select("categorised_age").unique().to_series().to_list()
+        age_categories = sorted(
+            age_categories, key=lambda x: ("Younger" in x, "Between" in x, "Older" in x)
+        )
         return data, age_categories
 
     def make_dispersion_plot(self, data):
