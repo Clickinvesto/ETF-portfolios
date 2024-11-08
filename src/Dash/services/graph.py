@@ -128,7 +128,8 @@ class plotting_engine:
         )
         age_categories = data.select("categorised_age").unique().to_series().to_list()
         age_categories = sorted(
-            age_categories, key=lambda x: ("Younger" in x, "Between" in x, "Older" in x)
+            age_categories,
+            key=lambda x: (0 if "Younger" in x else 1 if "Between" in x else 2),
         )
         return data, age_categories
 
