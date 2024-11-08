@@ -103,12 +103,18 @@ class plotting_engine:
         range_age = max_age - min_age
         section_length = range_age / 3
 
+        # Calculate the section limits and round to nearest integers
+        lower_section = round(min_age + section_length)
+        middle_section = round(min_age + 2 * section_length)
+        upper_section = round(max_age)
+
+        # Apply the categorization based on these rounded limits
         data = data.with_columns(
-            pl.when(pl.col("Age") <= min_age + section_length)
-            .then(pl.lit(f"Younger than {min_age}"))
-            .when(pl.col("Age") <= min_age + 2 * section_length)
-            .then(pl.lit(f"Between {min_age} and {min_age + 2 * section_length}"))
-            .otherwise(pl.lit(f"Older than {min_age + 2 * section_length}"))
+            pl.when(pl.col("Age") <= lower_section)
+            .then(pl.lit(f"Younger than {lower_section}"))
+            .when(pl.col("Age") <= middle_section)
+            .then(pl.lit(f"Between {lower_section} and {middle_section}"))
+            .otherwise(pl.lit(f"Older than {middle_section}"))
             .alias("categorised_age")
         )
 
