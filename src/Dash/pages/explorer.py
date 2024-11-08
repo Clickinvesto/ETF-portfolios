@@ -59,7 +59,7 @@ def full_layout():
                                 figure=blank_fig(),
                             ),
                             dmc.Text(
-                                dcc.Html(id="color_mapping_age"),
+                                dmc.Box(id="color_mapping_age"),
                                 size="sm",
                             ),
                             dmc.Text(
