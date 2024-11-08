@@ -29,10 +29,12 @@ cache = current_app.cache
 
 def get_color_scale(unique_values):
     return (
-        f"* Colors represent age categories:\n"
-        f"  - <span style='color: #a8d4ff;'>●</span> {unique_values[0]}\n"
-        f"  - <span style='color: #0b88ff;'>●</span> {unique_values[1]}\n"
-        f"  - <span style='color: #002446;'>●</span> {unique_values[2]}"
+        "* Colors represent age categories:\n"
+        "  - <span style='color: #a8d4ff;'>●</span> {}\n"
+        "  - <span style='color: #0b88ff;'>●</span> {}\n"
+        "  - <span style='color: #002446;'>●</span> {}".format(
+            unique_values[0], unique_values[1], unique_values[2]
+        )
     )
 
 
