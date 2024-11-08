@@ -111,6 +111,7 @@ class plotting_engine:
             .otherwise(pl.lit(f"Older than {min_age + 2 * section_length}"))
             .alias("categorised_age")
         )
+
         data = data.with_columns(
             pl.when(pl.col("categorised_age").str.contains("Younger"))
             .then(pl.lit(color_dict["young"]))
@@ -119,7 +120,8 @@ class plotting_engine:
             .otherwise(pl.lit(color_dict["old"]))
             .alias("color")
         )
-        return data
+        age_categories = data.select("categorised_age").unique().to_series().to_list()
+        return data, age_categories
 
     def make_dispersion_plot(self, data):
         self.update_config()
@@ -131,7 +133,7 @@ class plotting_engine:
 
         self.figure.update_layout(clickmode="event+select")
 
-        data = self.prepare_age(data)
+        data, age_categories = self.prepare_age(data)
 
         hover_text = [
             f"Age (month): {age}"
@@ -243,7 +245,7 @@ class plotting_engine:
             ]
         )
         self.figure.update_layout(showlegend=False)
-        return self.figure
+        return self.figure, age_categories
 
     def make_performance_plot(self, data, series):
         try:
