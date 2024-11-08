@@ -10,6 +10,8 @@ from dash import (
     no_update,
     clientside_callback,
 )
+from markdown2dash import parse
+
 import polars as pl
 from flask import current_app
 from dash.exceptions import PreventUpdate
@@ -57,9 +59,7 @@ def full_layout():
                                 figure=blank_fig(),
                             ),
                             dmc.Text(
-                                dcc.Markdown(
-                                    id="color_mapping_age", dangerously_allow_html=True
-                                ),
+                                dcc.Html(id="color_mapping_age"),
                                 size="sm",
                             ),
                             dmc.Text(
@@ -111,7 +111,7 @@ def function_process():
 def init_graph(path):
     if path == current_app.config["URL_EXPLORER"]:
         figure, age_categories = function_process()
-        return figure, age_categories
+        return figure, parse(age_categories)
     raise PreventUpdate
 
 
