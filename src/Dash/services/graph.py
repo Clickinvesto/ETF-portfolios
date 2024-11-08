@@ -116,7 +116,7 @@ class plotting_engine:
             .then(pl.lit(color_dict["young"]))
             .when(pl.col("categorised_age").str.contains("Between"))
             .then(pl.lit(color_dict["middle"]))
-            .otherwise(pl.lit(color_dict["Older"]))
+            .otherwise(pl.lit(color_dict["old"]))
             .alias("color")
         )
         return data
