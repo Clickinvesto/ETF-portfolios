@@ -111,7 +111,7 @@ def function_process():
 def init_graph(path):
     if path == current_app.config["URL_EXPLORER"]:
         figure, age_categories = function_process()
-        return figure, parse(age_categories)
+        return figure, parse(get_color_scale(age_categories))
     raise PreventUpdate
 
 
