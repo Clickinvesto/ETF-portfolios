@@ -26,6 +26,15 @@ plotter = plotting_engine()
 cache = current_app.cache
 
 
+def get_color_scale(unique_values):
+    return (
+        f"<p>*Colors represent age categories - "
+        f"<span style='color: #a8d4ff;'>●</span> {unique_values[0]}, "
+        f"<span style='color: #0b88ff;'>●</span> {unique_values[1]}, "
+        f"<span style='color: #002446;'>●</span> {unique_values[2]}</p>"
+    )
+
+
 def layout(socket_ids=None, **kwargs):
     if socket_ids == None:
         raise PreventUpdate
@@ -35,12 +44,6 @@ def layout(socket_ids=None, **kwargs):
 
 
 def full_layout():
-    color_scale_note = (
-        "<p>*Colors represent age categories - "
-        "<span style='color: #a8d4ff;'>●</span> Young, "
-        "<span style='color: #0b88ff;'>●</span> Middle, "
-        "<span style='color: #002446;'>●</span> Old</p>"
-    )
 
     return dmc.Container(
         [
@@ -55,7 +58,7 @@ def full_layout():
                             ),
                             dmc.Text(
                                 dcc.Markdown(
-                                    color_scale_note, dangerously_allow_html=True
+                                    id="color_mapping_age", dangerously_allow_html=True
                                 ),
                                 size="sm",
                             ),
@@ -96,18 +99,19 @@ def full_layout():
 @cache.cached(timeout=None, key_prefix="dispersion_graph_figure")
 def function_process():
     data = api.get_dispersion_data()
-    figure = plotter.make_dispersion_plot(data)
-    return figure
+    figure, age_categories = plotter.make_dispersion_plot(data)
+    return figure, age_categories
 
 
 @callback(
     Output("dispersion_plot", "figure"),
+    Output("color_mapping_age", "children"),
     Input("url", "pathname"),
 )
 def init_graph(path):
     if path == current_app.config["URL_EXPLORER"]:
-        figure = function_process()
-        return figure
+        figure, age_categories = function_process()
+        return figure, age_categories
     raise PreventUpdate
 
 
