@@ -105,23 +105,22 @@ class plotting_engine:
 
         data = data.with_columns(
             pl.when(pl.col("Age") <= min_age + section_length)
-            .then(pl.lit("young"))
+            .then(pl.lit(f"Younger than {min_age}"))
             .when(pl.col("Age") <= min_age + 2 * section_length)
-            .then(pl.lit("middle"))
-            .otherwise(pl.lit("old"))
+            .then(pl.lit(f"Between {min_age} and {min_age + 2 * section_length}"))
+            .otherwise(pl.lit(f"Older than {min_age + 2 * section_length}"))
             .alias("categorised_age")
         )
         data = data.with_columns(
-            pl.when(pl.col("categorised_age") == "young")
+            pl.when(pl.col("categorised_age").str.contains("Younger"))
             .then(pl.lit(color_dict["young"]))
-            .when(pl.col("categorised_age") == "middle")
+            .when(pl.col("categorised_age").str.contains("Between"))
             .then(pl.lit(color_dict["middle"]))
-            .otherwise(pl.lit(color_dict["old"]))
+            .otherwise(pl.lit(color_dict["Older"]))
             .alias("color")
         )
         return data
 
-    
     def make_dispersion_plot(self, data):
         self.update_config()
         configuration = self.cofiguration.get("dispersion")
@@ -225,7 +224,7 @@ class plotting_engine:
                             ),
                             dict(
                                 args=[{"visible": [False, True, True]}],
-                                label="Better than RI",
+                                label="Better than market",
                                 method="update",
                             ),
                         ]
