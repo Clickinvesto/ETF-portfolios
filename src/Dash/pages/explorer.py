@@ -28,6 +28,7 @@ cache = current_app.cache
 
 
 def get_color_scale(unique_values):
+    print(unique_values)
     return (
         "<p>*Colors represent age categories - "
         "<span style='color: #a8d4ff;'>●</span> {}, "
